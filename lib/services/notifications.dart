@@ -77,4 +77,6 @@ class Notifs {
   static const int idError = 1004;
   static const int idGuiding = 1005;
   static const int idCooler = 1006;
+  /// Alerts arriving from outside the app (bridge /ws/state `notification`).
+  static const int idExternal = 1007;
 }
