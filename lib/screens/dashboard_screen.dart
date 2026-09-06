@@ -32,6 +32,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // v0.2.44: spazio disco del Pi (cambia lentamente → poll ogni 30s).
   Timer? _diskPoll;
   Map<String, dynamic>? _disk;
+  // v0.2.58: backend guida ('internal'|'phd2'|null) + stato guider interno,
+  // per rietichettare il tile GUIDE della home ed evitare confusione con PHD2.
+  String? _guideBackend;
+  Map<String, dynamic>? _ekosGuide;
 
   @override
   void initState() {
@@ -61,6 +65,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (_) {
       // silenzioso: se Ekos non è raggiungibile lasciamo l'ultimo valore
     }
+    // v0.2.58: rileva il guider attivo; se interno, prendi anche il suo stato
+    try {
+      final b = await s.api!.guideBackend();
+      final backend = b['backend'] as String?;
+      Map<String, dynamic>? eg;
+      if (backend == 'internal') {
+        eg = await s.api!.guideEkosStatus();
+      }
+      if (mounted) setState(() { _guideBackend = backend; _ekosGuide = eg; });
+    } catch (_) {}
   }
 
   Future<void> _refreshDisk() async {
@@ -603,6 +617,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _guideCard(BuildContext c, AppState s) {
+    // v0.2.58: se Ekos guida col guider INTERNO, il tile mostra "Guida Interna"
+    // (niente riferimenti a PHD2, che sarebbero confusivi).
+    if (_guideBackend == 'internal') {
+      final eg = _ekosGuide ?? const {};
+      final st = eg['state']?.toString() ?? '—';
+      final rms = (eg['rms_total'] as num?)?.toDouble();
+      final guiding = st.toUpperCase().contains('GUID');
+      return StatusCard(
+        header: 'GUIDE',
+        value: (guiding && rms != null)
+            ? '${rms.toStringAsFixed(2)}″'
+            : (st == '—' ? 'idle' : st.toLowerCase()),
+        subtitle: 'Guida Interna',
+        badgeColor: guiding ? T.ok(c) : T.muted(c),
+        badgeText: guiding ? 'on' : st.toLowerCase(),
+      );
+    }
     // v0.2.34 fix: il tile prima leggeva solo `rms_total` e `app_state`,
     // che PHD2 popola solo durante guiding attivo. Risultato: il tile
     // appariva fermo/statico anche quando PHD2 era connesso e in loop.
