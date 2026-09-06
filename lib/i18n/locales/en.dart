@@ -965,4 +965,10 @@ const Map<String, String> enStrings = {
         'No weather/dome device connected. Tap CONNECT on the candidate drivers below.',
     'Nessun driver meteo/dome/flat caricato in questo profilo Ekos.':
         'No weather/dome/flat driver loaded in this Ekos profile.',
+    // ==== WIDE SCREENS / WEB ================================================
+    'Chiudi pannello': 'Close panel',
+    'Riapri il secondo pannello': 'Reopen the second panel',
+    'Scambia i pannelli': 'Swap panels',
+    'La scansione QR non è disponibile nel browser.':
+        'QR scanning is not available in the browser.',
   };

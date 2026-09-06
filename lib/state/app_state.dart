@@ -34,13 +34,24 @@ class AppState extends ChangeNotifier {
     return bridges.first;
   }
 
+  // === Page origin (web only) ===
+  //
+  // When the interface is served by the bridge itself — the field case,
+  // where you open http://astroarch.local:8765/ from a tablet on the
+  // hotspot — host and port are already known: they are the page's own.
+  // Using them as defaults avoids asking the user for what the browser
+  // already has, leaving only the token to type.
+  static String get originHost => kIsWeb ? Uri.base.host : '';
+  static int get originPort => kIsWeb ? Uri.base.port : 8765;
+  static bool get originHttps => kIsWeb && Uri.base.scheme == 'https';
+
   // === Facades verso la bridge attiva ===
-  String get host => activeBridge?.host ?? '';
+  String get host => activeBridge?.host ?? originHost;
   set host(String v) {
     final b = activeBridge;
     if (b != null) { b.host = v; savePrefs(); }
   }
-  int get port => activeBridge?.port ?? 8765;
+  int get port => activeBridge?.port ?? originPort;
   set port(int v) {
     final b = activeBridge;
     if (b != null) { b.port = v; savePrefs(); }
@@ -50,7 +61,7 @@ class AppState extends ChangeNotifier {
     final b = activeBridge;
     if (b != null) { b.token = v; savePrefs(); }
   }
-  bool get useHttps => activeBridge?.useHttps ?? false;
+  bool get useHttps => activeBridge?.useHttps ?? originHttps;
   set useHttps(bool v) {
     final b = activeBridge;
     if (b != null) { b.useHttps = v; savePrefs(); }
