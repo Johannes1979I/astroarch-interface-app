@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,10 +20,9 @@ import 'shell_screen.dart';
 ///   - log di guida
 ///   - comandi (start/stop/calibrate/dither/loop)
 ///
-/// NB tecnica: i frame della camera di guida NON passano dalla cache BLOB di
-/// KStars (niente setBLOBMode via DBus), quindi la star image non e' ancora
-/// qui. Arrivera' con un client INDI dedicato nel bridge (iscrizione allo
-/// stream BLOB su :7624, per-client → non disturba il guiding di Ekos).
+///   - immagine LIVE della camera di guida: il bridge apre un client INDI
+///     dedicato su :7624 e legge lo stream BLOB (modalita' BLOB per-client,
+///     quindi Ekos continua a guidare indisturbato).
 class EkosGuideView extends StatefulWidget {
   final Future<void> Function()? onReload;
   const EkosGuideView({super.key, this.onReload});
@@ -252,25 +252,8 @@ class _EkosGuideViewState extends State<EkosGuideView> {
             const SizedBox(height: 12),
           ],
 
-          // Nota onesta su star image
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: T.panel(context),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: T.line(context)),
-            ),
-            child: Row(children: [
-              Icon(Icons.info_outline, color: T.muted(context), size: 16),
-              const SizedBox(width: 8),
-              Expanded(child: Text(
-                "Immagine live della stella: in arrivo nella prossima versione "
-                "(client INDI dedicato). Per ora usa il grafico qui sopra."
-                    .tr(context),
-                style: TextStyle(color: T.muted(context), fontSize: 11),
-              )),
-            ]),
-          ),
+          // IMMAGINE LIVE della camera di guida (client INDI nel bridge)
+          const _EkosFrameCard(),
         ],
       ),
     );
@@ -391,6 +374,145 @@ class _EkosGuideViewState extends State<EkosGuideView> {
             ],
           ),
         )),
+      ]),
+    );
+  }
+}
+
+
+/// Immagine LIVE della camera di guida per il guider INTERNO.
+/// Il frame arriva dal bridge, che apre un proprio client INDI su :7624 e si
+/// iscrive allo stream BLOB della camera (per-client → Ekos guida indisturbato).
+/// OFF di default: ogni frame e' un PNG da qualche centinaio di KB su Tailscale.
+class _EkosFrameCard extends StatefulWidget {
+  const _EkosFrameCard();
+  @override
+  State<_EkosFrameCard> createState() => _EkosFrameCardState();
+}
+
+class _EkosFrameCardState extends State<_EkosFrameCard> {
+  Timer? _timer;
+  Uint8List? _png;
+  int? _w, _h;
+  String? _err;
+  bool _inflight = false;
+  bool _enabled = false;
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _enabled = !_enabled);
+    if (_enabled) {
+      _tick();
+      _timer = Timer.periodic(const Duration(seconds: 5), (_) => _tick());
+    } else {
+      _timer?.cancel();
+      _timer = null;
+    }
+  }
+
+  Future<void> _tick() async {
+    if (_inflight) return;
+    final s = context.read<AppState>();
+    if (s.api == null) return;
+    _inflight = true;
+    try {
+      final j = await s.api!.guideEkosFullFrame(maxDim: 1024);
+      final b64 = j['png_base64'] as String?;
+      if (b64 == null) throw Exception('png mancante');
+      final bytes = base64.decode(b64);
+      if (!mounted) return;
+      setState(() {
+        _png = bytes;
+        _w = (j['width'] as num?)?.toInt();
+        _h = (j['height'] as num?)?.toInt();
+        _err = null;
+      });
+    } on ApiException catch (e) {
+      String msg = e.body;
+      try {
+        final j = jsonDecode(e.body);
+        if (j is Map && j['detail'] != null) msg = j['detail'].toString();
+      } catch (_) {}
+      if (mounted) setState(() => _err = msg);
+    } catch (e) {
+      if (mounted) setState(() => _err = e.toString());
+    } finally {
+      _inflight = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: T.panel(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: T.line(context)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.photo_camera_outlined, color: T.muted(context), size: 16),
+          const SizedBox(width: 8),
+          Text('IMMAGINE GUIDA'.tr(context), style: TextStyle(
+              color: T.muted(context), fontSize: 11, fontWeight: FontWeight.w700)),
+          const Spacer(),
+          if (_w != null && _h != null)
+            Text('$_w×$_h', style: TextStyle(
+                color: T.muted(context), fontSize: 10, fontFamily: 'monospace')),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _toggle,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _enabled
+                    ? T.accent(context).withValues(alpha: 0.18)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _enabled
+                    ? T.accent(context) : T.line(context)),
+              ),
+              child: Text(_enabled ? 'ON' : 'OFF', style: TextStyle(
+                  color: _enabled ? T.accent(context) : T.muted(context),
+                  fontSize: 10, fontWeight: FontWeight.w700)),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 8),
+        if (!_enabled)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Text(
+              'Attiva per vedere il campo della camera di guida in tempo reale.\n'
+              'Richiede LOOP o guida attiva.'.tr(context),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: T.muted(context), fontSize: 11),
+            ),
+          )
+        else if (_png != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(_png!, fit: BoxFit.contain,
+                gaplessPlayback: true),
+          )
+        else if (_err != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Text(_err!, textAlign: TextAlign.center,
+                style: TextStyle(color: T.warn(context), fontSize: 11)),
+          )
+        else
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 22),
+            child: Center(child: SizedBox(width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2))),
+          ),
       ]),
     );
   }

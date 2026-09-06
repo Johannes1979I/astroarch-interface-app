@@ -445,6 +445,12 @@ class ApiClient {
   // v0.2.57: guider INTERNO di Ekos (via DBus lato bridge). Alternativo a PHD2.
   Future<Map<String, dynamic>> guideBackend() => get('/api/guide/backend');
   Future<Map<String, dynamic>> guideEkosStatus() => get('/api/guide/ekos_status');
+  /// v0.2.59: frame LIVE della camera di guida col guider INTERNO.
+  /// Il bridge apre un client INDI dedicato (:7624) e legge lo stream BLOB.
+  /// `timeout` e' quello lato server: teniamolo basso cosi' risponde 409
+  /// prima che scada il timeout HTTP quando la camera non sta esponendo.
+  Future<Map<String, dynamic>> guideEkosFullFrame({int maxDim = 1024, int timeout = 12}) =>
+      get('/api/guide/ekos_full_frame', {'max_dim': '$maxDim', 'timeout': '$timeout'});
   Future<void> guideEkosStart() => post('/api/guide/ekos_start');
   Future<void> guideEkosStop() => post('/api/guide/ekos_stop');
   Future<void> guideEkosCalibrate() => post('/api/guide/ekos_calibrate');
