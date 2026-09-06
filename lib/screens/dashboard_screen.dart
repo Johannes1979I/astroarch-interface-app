@@ -181,13 +181,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // v0.2.44: striscia health aggregato del sistema
             _systemHealth(context, state),
             const SizedBox(height: 10),
+            // Lancio GUI app sul desktop del RPi (KStars/Ekos, PHD2).
+            // Le finestre appaiono sul monitor fisico del RPi.
+            // Sta SOPRA il toggle master perche' l'ordine d'uso reale e':
+            // prima avvii i programmi, poi attivi il sistema.
+            const LaunchAppsCard(),
+            const SizedBox(height: 8),
             // Pulsante master Attiva/Disattiva — clone del quadratino
             // Start/Stop Ekos del pannello Setup. Verde=tutto su, rosso=tutto giù.
             const EkosMasterToggle(),
-            const SizedBox(height: 8),
-            // Lancio GUI app sul desktop del RPi (KStars/Ekos, PHD2).
-            // Le finestre appaiono sul monitor fisico del RPi.
-            const LaunchAppsCard(),
             const SizedBox(height: 12),
             _connectionBanner(context, state),
             const SizedBox(height: 10),
