@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/api_client.dart';
+import '../app_version.dart';
 import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
@@ -151,8 +152,17 @@ class _EkosGuideViewState extends State<EkosGuideView> {
                 'Guida interna di Ekos (AI/GPG). Grafico e dati live qui sotto.'.tr(context),
                 style: TextStyle(color: T.muted(context), fontSize: 12),
               )),
+              // Versione app ben visibile: serve a capire a colpo d'occhio se
+              // sul telefono gira davvero la build attesa.
+              Text('v$kAppVersion', style: TextStyle(
+                  color: T.accent(context), fontSize: 11,
+                  fontWeight: FontWeight.w700, fontFamily: 'monospace')),
             ]),
           ),
+          const SizedBox(height: 12),
+
+          // IMMAGINE LIVE della camera di guida (in alto, come in PHD2)
+          const _EkosFrameCard(),
           const SizedBox(height: 12),
 
           // GRAFICO DI DRIFT (come PHD2)
@@ -252,8 +262,6 @@ class _EkosGuideViewState extends State<EkosGuideView> {
             const SizedBox(height: 12),
           ],
 
-          // IMMAGINE LIVE della camera di guida (client INDI nel bridge)
-          const _EkosFrameCard(),
         ],
       ),
     );
@@ -396,7 +404,18 @@ class _EkosFrameCardState extends State<_EkosFrameCard> {
   int? _w, _h;
   String? _err;
   bool _inflight = false;
-  bool _enabled = false;
+  bool _enabled = true; // ON di default: l'utente vuole vedere il loop
+
+  @override
+  void initState() {
+    super.initState();
+    // Il timer va avviato subito: prima partiva solo dal toggle, quindi con
+    // _enabled=true di default non sarebbe mai arrivato nessun frame.
+    if (_enabled) {
+      _tick();
+      _timer = Timer.periodic(const Duration(seconds: 5), (_) => _tick());
+    }
+  }
 
   @override
   void dispose() {

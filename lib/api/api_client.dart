@@ -63,10 +63,15 @@ class ApiClient {
     );
   }
 
-  Future<Map<String, dynamic>> get(String path, [Map<String, String>? q]) async {
+  /// [timeout] opzionale: serve alle richieste lente come il frame della
+  /// camera di guida, dove il bridge attende il prossimo scatto prima di
+  /// rispondere. Default invariato (10s) per tutte le altre chiamate.
+  Future<Map<String, dynamic>> get(String path, [Map<String, String>? q,
+      Duration? timeout]) async {
     final sw = Stopwatch()..start();
     try {
-      final r = await _http.get(_u(path, q), headers: _authHeaders).timeout(const Duration(seconds: 10));
+      final r = await _http.get(_u(path, q), headers: _authHeaders)
+          .timeout(timeout ?? const Duration(seconds: 10));
       sw.stop();
       ApiLog.add(ApiLogEntry(
         ts: DateTime.now(), method: 'GET', path: _logPath(path, q),
@@ -449,8 +454,13 @@ class ApiClient {
   /// Il bridge apre un client INDI dedicato (:7624) e legge lo stream BLOB.
   /// `timeout` e' quello lato server: teniamolo basso cosi' risponde 409
   /// prima che scada il timeout HTTP quando la camera non sta esponendo.
-  Future<Map<String, dynamic>> guideEkosFullFrame({int maxDim = 1024, int timeout = 12}) =>
-      get('/api/guide/ekos_full_frame', {'max_dim': '$maxDim', 'timeout': '$timeout'});
+  /// Il bridge attende fino a [timeout] secondi il prossimo frame dalla camera,
+  /// poi deve ancora trasferire ~500KB di PNG su Tailscale: il timeout HTTP
+  /// deve quindi essere piu' lungo dell'attesa lato server (altrimenti il
+  /// client mollava sempre per primo).
+  Future<Map<String, dynamic>> guideEkosFullFrame({int maxDim = 1024, int timeout = 15}) =>
+      get('/api/guide/ekos_full_frame', {'max_dim': '$maxDim', 'timeout': '$timeout'},
+          Duration(seconds: timeout + 15));
   Future<void> guideEkosStart() => post('/api/guide/ekos_start');
   Future<void> guideEkosStop() => post('/api/guide/ekos_stop');
   Future<void> guideEkosCalibrate() => post('/api/guide/ekos_calibrate');
