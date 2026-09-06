@@ -445,6 +445,17 @@ class ApiClient {
   Future<void> filterSelect(int slot, {String? device}) =>
       post('/api/filter_wheel/select', {'slot': slot, if (device != null) 'device': device});
 
+  // Offline alerts (bridge notify channel)
+  Future<Map<String, dynamic>> notificationsRecent({int limit = 50}) =>
+      get('/api/notify/recent', {'limit': '$limit'});
+  Future<Map<String, dynamic>> notificationsClear() async {
+    final uri = _u('/api/notify');
+    final r = await _http.delete(uri, headers: _authHeaders)
+        .timeout(const Duration(seconds: 10));
+    if (r.statusCode >= 300) throw ApiException(r.statusCode, r.body);
+    return jsonDecode(r.body);
+  }
+
   // Guide
   Future<Map<String, dynamic>> guideStatus() => get('/api/guide/status');
   // v0.2.57: guider INTERNO di Ekos (via DBus lato bridge). Alternativo a PHD2.

@@ -965,4 +965,12 @@ const Map<String, String> enStrings = {
         'No weather/dome device connected. Tap CONNECT on the candidate drivers below.',
     'Nessun driver meteo/dome/flat caricato in questo profilo Ekos.':
         'No weather/dome/flat driver loaded in this Ekos profile.',
+    // ==== OFFLINE ALERTS ====================================================
+    'Chiudi avviso': 'Dismiss alert',
+    'Avvisi ricevuti': 'Alerts received',
+    'Nessun avviso ricevuto': 'No alerts received',
+    'Cancella tutti': 'Clear all',
+    'Cancellare tutti gli avvisi?': 'Clear all alerts?',
+    'La cronaca della sessione andrà persa, su tutti i dispositivi.':
+        'The record of the session will be lost, on every device.',
   };

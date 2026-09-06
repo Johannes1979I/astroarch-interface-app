@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../theme/transitions.dart';
 import '../widgets/common.dart';
 import '../services/notification_watcher.dart';
+import '../widgets/notification_banner.dart';
 import 'dashboard_screen.dart';
 import 'mount_screen.dart';
 import 'capture_screen.dart';
@@ -66,6 +67,8 @@ class _ShellScreenState extends State<ShellScreen> {
       body: Column(children: [
         // Watcher invisibile per le notifiche locali (v0.2.44).
         const NotificationWatcher(),
+        // Alerts pushed by the bridge (external programs over UDP).
+        const NotificationBanner(),
         if (wsDown) _ConnectionBanner(label: s.wsStateLabel),
         // v0.2.46: transizione a tema al cambio tab (teletrasporto Star Trek /
         // risucchio Gargantua Interstellar). Istantaneo su Pro/Notte.
@@ -200,6 +203,13 @@ class _AppDrawer extends StatelessWidget {
             _navTile(context, Icons.history, 'Activity Log (chiamate API)'.tr(context), () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ActivityLogScreen()));
+            }),
+            _navTile(context, Icons.notifications_none,
+                state.unseenNotifications > 0
+                    ? '${'Avvisi ricevuti'.tr(context)} (${state.unseenNotifications})'
+                    : 'Avvisi ricevuti'.tr(context), () {
+              Navigator.pop(context);
+              NotificationHistorySheet.show(context);
             }),
             _navTile(context, Icons.settings, 'Impostazioni'.tr(context), () {
               Navigator.pop(context);
