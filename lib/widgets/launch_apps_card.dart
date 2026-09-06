@@ -26,6 +26,9 @@ class _LaunchAppsCardState extends State<LaunchAppsCard> {
   // Stato del sistema master (active / inactive / pending / error / unknown).
   // Quando 'inactive' i pulsanti running diventano "tap per chiudere".
   String _ekosActive = 'unknown';
+  // Guider usato da Ekos ('internal' | 'phd2' | ...): se e' quello interno
+  // PHD2 non va lanciato, quindi il pulsante diventa informativo e inattivo.
+  String? _guideBackend;
 
   @override
   void initState() {
@@ -52,14 +55,17 @@ class _LaunchAppsCardState extends State<LaunchAppsCard> {
       final results = await Future.wait([
         s.api!.guiAppsState(),
         s.api!.ekosState().catchError((_) => <String, dynamic>{}),
+        s.api!.guideBackend().catchError((_) => <String, dynamic>{}),
       ]);
       if (!mounted) return;
       final apps = results[0];
       final ekos = results[1];
+      final guide = results[2];
       setState(() {
         _kstarsRunning = apps['kstars_running'] == true;
         _phd2Running = apps['phd2_running'] == true;
         _ekosActive = (ekos['active'] as String?) ?? 'unknown';
+        _guideBackend = guide['backend'] as String?;
       });
     } catch (_) {}
   }
@@ -167,13 +173,24 @@ class _LaunchAppsCardState extends State<LaunchAppsCard> {
             onTap: _onTapKStars,
           )),
           const SizedBox(width: 8),
-          Expanded(child: _appButton(
-            label: 'PHD2',
-            icon: Icons.gps_fixed,
-            running: _phd2Running,
-            busy: _phd2Busy,
-            onTap: _onTapPhd2,
-          )),
+          Expanded(child: (_guideBackend == 'internal')
+              // Ekos guida col guider interno: PHD2 non serve. Mostriamo lo
+              // stato invece di un pulsante che confonderebbe.
+              ? _appButton(
+                  label: 'GUIDA INTERNA',
+                  icon: Icons.auto_graph,
+                  running: false,
+                  busy: false,
+                  onTap: null,
+                  disabledSubtitle: 'PHD2 non serve'.tr(context),
+                )
+              : _appButton(
+                  label: 'PHD2',
+                  icon: Icons.gps_fixed,
+                  running: _phd2Running,
+                  busy: _phd2Busy,
+                  onTap: _onTapPhd2,
+                )),
         ]),
       ]),
     );
@@ -182,31 +199,45 @@ class _LaunchAppsCardState extends State<LaunchAppsCard> {
   Widget _appButton({
     required String label, required IconData icon,
     required bool running, required bool busy,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
+    String? disabledSubtitle,
   }) {
+    // onTap == null → pulsante informativo, non cliccabile (es. "GUIDA
+    // INTERNA" quando Ekos non usa PHD2): stile spento, niente feedback tap.
+    final bool disabled = onTap == null;
     // 3 stati visivi:
     //  - running + sistema attivo  → VERDE bloccato (tap mostra warning)
     //  - running + sistema giù     → VERDE chiudibile (subtitle "tap per chiudere")
     //  - off                        → ARANCIONE (tap per avviare)
     final canKill = running && !_systemActive;
-    final Color bgColor = running
-        ? T.ok(context).withValues(alpha: 0.15)
-        : T.accent(context).withValues(alpha: 0.10);
-    final Color borderColor = running
-        ? T.ok(context).withValues(alpha: 0.5)
-        : T.accent(context).withValues(alpha: 0.4);
-    final Color fgColor = running ? T.ok(context) : T.accent(context);
-    final String subtitle = running
-        ? (canKill
-            ? 'tap per chiudere'.tr(context)
-            : 'in esecuzione'.tr(context))
-        : 'avvia'.tr(context);
-    final IconData buttonIcon = running
-        ? (canKill ? Icons.power_settings_new : Icons.check_circle)
-        : icon;
+    final Color bgColor = disabled
+        ? T.line(context).withValues(alpha: 0.12)
+        : running
+            ? T.ok(context).withValues(alpha: 0.15)
+            : T.accent(context).withValues(alpha: 0.10);
+    final Color borderColor = disabled
+        ? T.line(context)
+        : running
+            ? T.ok(context).withValues(alpha: 0.5)
+            : T.accent(context).withValues(alpha: 0.4);
+    final Color fgColor = disabled
+        ? T.muted(context)
+        : running ? T.ok(context) : T.accent(context);
+    final String subtitle = disabled
+        ? (disabledSubtitle ?? '')
+        : running
+            ? (canKill
+                ? 'tap per chiudere'.tr(context)
+                : 'in esecuzione'.tr(context))
+            : 'avvia'.tr(context);
+    final IconData buttonIcon = disabled
+        ? icon
+        : running
+            ? (canKill ? Icons.power_settings_new : Icons.check_circle)
+            : icon;
 
     return InkWell(
-      onTap: busy ? null : onTap,
+      onTap: (busy || disabled) ? null : onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),

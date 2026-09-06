@@ -440,7 +440,7 @@ class _EkosFrameCardState extends State<_EkosFrameCard> {
     if (s.api == null) return;
     _inflight = true;
     try {
-      final j = await s.api!.guideEkosFullFrame(maxDim: 1024);
+      final j = await s.api!.guideEkosFullFrame(maxDim: 800);
       final b64 = j['png_base64'] as String?;
       if (b64 == null) throw Exception('png mancante');
       final bytes = base64.decode(b64);
