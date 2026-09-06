@@ -508,7 +508,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
           Text('$n ${'job · durata stimata ~'.tr(context)}$mins ${'min'.tr(context)}',
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
           const SizedBox(height: 12),
-          Text('Come vuoi eseguire la sequenza?'.tr(context),
+          Text('Cosa vuoi che faccia?'.tr(context),
               style: TextStyle(color: T.muted(context), fontSize: 12)),
           const SizedBox(height: 14),
           // Opzione 0: Osservazione completa (pre-flight)
@@ -525,12 +525,24 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 Row(children: [
                   Icon(Icons.auto_awesome, color: T.ok(context), size: 16),
                   const SizedBox(width: 6),
-                  Text('${'OSSERVAZIONE COMPLETA'.tr(context)}  ⭐',
-                      style: TextStyle(color: T.ok(context), fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('FAI TUTTO TU'.tr(context),
+                      style: TextStyle(color: T.ok(context), fontWeight: FontWeight.w700))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: T.ok(context),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Text('CONSIGLIATO', style: TextStyle(
+                        color: Colors.black, fontSize: 9, fontWeight: FontWeight.w800)),
+                  ),
                 ]),
                 const SizedBox(height: 4),
-                Text('Slew → plate solve → sync → guide start → cattura. Tutta la pipeline pre-flight come Ekos Scheduler.'.tr(context),
+                Text('Punta l\'oggetto, verifica la posizione col plate solving, avvia la guida e poi scatta.'.tr(context),
                     style: TextStyle(color: T.muted(context), fontSize: 11)),
+                const SizedBox(height: 3),
+                Text('→ Usala se parti da zero su un nuovo oggetto.'.tr(context),
+                    style: TextStyle(color: T.ok(context), fontSize: 11, fontWeight: FontWeight.w600)),
               ]),
             ),
           ),
@@ -549,40 +561,20 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 Row(children: [
                   Icon(Icons.star, color: T.accent(context), size: 16),
                   const SizedBox(width: 6),
-                  Text('VIA EKOS (consigliato)'.tr(context),
-                      style: TextStyle(color: T.accent(context), fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('SCATTA I JOB DI QUESTA APP'.tr(context),
+                      style: TextStyle(color: T.accent(context), fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 4),
-                Text('I job appaiono nella Capture queue di Ekos. Ekos gestisce dither, autofocus, naming, meridian flip.'.tr(context),
+                Text('Manda a Ekos i job che hai creato qui sopra. Ekos si occupa di dither, autofocus, nomi file e flip al meridiano.'.tr(context),
                     style: TextStyle(color: T.muted(context), fontSize: 11)),
+                const SizedBox(height: 3),
+                Text('→ Usala se il telescopio è già puntato e in guida.'.tr(context),
+                    style: TextStyle(color: T.accent(context), fontSize: 11, fontWeight: FontWeight.w600)),
               ]),
             ),
           ),
           const SizedBox(height: 8),
-          // Opzione 2: diretto
-          InkWell(
-            onTap: () => Navigator.pop(c, 'direct'),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: T.line(context)),
-              ),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Icon(Icons.bolt, color: T.muted(context), size: 16),
-                  const SizedBox(width: 6),
-                  Text('DIRETTO (via INDI)'.tr(context),
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                ]),
-                const SizedBox(height: 4),
-                Text('Comando diretto al driver INDI. Ekos non vede la sequenza nella sua UI.'.tr(context),
-                    style: TextStyle(color: T.muted(context), fontSize: 11)),
-              ]),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Opzione 3 (v0.2.56): avvia la sequenza GIÀ pianificata in Ekos
+          // Opzione 3: avvia la sequenza GIÀ pianificata in Ekos
           // (nessun clear/load: usa la Capture queue configurata a mano nella
           // UI di Ekos sul desktop). Ideale quando hai già preparato tutto lì.
           InkWell(
@@ -598,12 +590,41 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 Row(children: [
                   Icon(Icons.playlist_play, color: T.ok(context), size: 16),
                   const SizedBox(width: 6),
-                  Expanded(child: Text('Avvia sequenza pianificata in EKOS'.tr(context),
+                  Expanded(child: Text('AVVIA QUELLA GIÀ PRONTA IN EKOS'.tr(context),
                       style: TextStyle(color: T.ok(context), fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 4),
-                Text('Premi play sulla sequenza che hai già preparato nella Capture queue di Ekos. Non tocca puntamento, guida PHD2, cooler né la sequenza: usa esattamente la tua configurazione. Il dither segue le impostazioni di Ekos.'.tr(context),
+                Text('Preme play sulla sequenza che hai già preparato sul desktop del Pi. Non tocca nulla: né puntamento, né guida, né i tuoi job.'.tr(context),
                     style: TextStyle(color: T.muted(context), fontSize: 11)),
+                const SizedBox(height: 3),
+                Text('→ Usala se hai già configurato tutto in Ekos.'.tr(context),
+                    style: TextStyle(color: T.ok(context), fontSize: 11, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Opzione 4 (ultima, avanzata): comando diretto al driver INDI
+          InkWell(
+            onTap: () => Navigator.pop(c, 'direct'),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: T.line(context)),
+              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(Icons.bolt, color: T.muted(context), size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text('DIRETTO — avanzato'.tr(context),
+                      style: TextStyle(color: T.muted(context), fontWeight: FontWeight.w700))),
+                ]),
+                const SizedBox(height: 4),
+                Text('Comanda la camera saltando Ekos: niente dither né autofocus, e la sequenza non compare in Ekos.'.tr(context),
+                    style: TextStyle(color: T.muted(context), fontSize: 11)),
+                const SizedBox(height: 3),
+                Text('→ Solo per prove veloci.'.tr(context),
+                    style: TextStyle(color: T.muted(context), fontSize: 11, fontWeight: FontWeight.w600)),
               ]),
             ),
           ),
