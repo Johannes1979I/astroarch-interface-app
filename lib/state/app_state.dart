@@ -35,13 +35,24 @@ class AppState extends ChangeNotifier {
     return bridges.first;
   }
 
+  // === Page origin (web only) ===
+  //
+  // When the interface is served by the bridge itself — the field case,
+  // where you open http://astroarch.local:8765/ from a tablet on the
+  // hotspot — host and port are already known: they are the page's own.
+  // Using them as defaults avoids asking the user for what the browser
+  // already has, leaving only the token to type.
+  static String get originHost => kIsWeb ? Uri.base.host : '';
+  static int get originPort => kIsWeb ? Uri.base.port : 8765;
+  static bool get originHttps => kIsWeb && Uri.base.scheme == 'https';
+
   // === Facades verso la bridge attiva ===
-  String get host => activeBridge?.host ?? '';
+  String get host => activeBridge?.host ?? originHost;
   set host(String v) {
     final b = activeBridge;
     if (b != null) { b.host = v; savePrefs(); }
   }
-  int get port => activeBridge?.port ?? 8765;
+  int get port => activeBridge?.port ?? originPort;
   set port(int v) {
     final b = activeBridge;
     if (b != null) { b.port = v; savePrefs(); }
@@ -51,7 +62,7 @@ class AppState extends ChangeNotifier {
     final b = activeBridge;
     if (b != null) { b.token = v; savePrefs(); }
   }
-  bool get useHttps => activeBridge?.useHttps ?? false;
+  bool get useHttps => activeBridge?.useHttps ?? originHttps;
   set useHttps(bool v) {
     final b = activeBridge;
     if (b != null) { b.useHttps = v; savePrefs(); }
@@ -818,7 +829,11 @@ class AppState extends ChangeNotifier {
   /// snapshot of the next reconnect would otherwise bring it all back — and
   /// other clients would go on showing it.
   Future<void> clearNotifications() async {
-    await api?.notificationsClear();
+    // Se non c'e' un client non si puo' svuotare la lista sul bridge, e
+    // svuotare solo quella locale e' esattamente cio' che il commento qui
+    // sopra dice di non fare: al prossimo snapshot tornerebbe tutto.
+    if (api == null) return;
+    await api!.notificationsClear();
     notifications.clear();
     pendingNotification = null;
     unseenNotifications = 0;
@@ -853,19 +868,46 @@ class AppState extends ChangeNotifier {
     // Where the platform has system notifications, raise one as well: the
     // banner is only visible with the app in front, and the point of an
     // alert is to reach whoever is not looking.
-    if (Notifs.enabled) {
-      Notifs.show(Notifs.idExternal, title.isEmpty ? 'Astroarch' : title,
-          message.isEmpty ? title : message,
-          highPriority: level != 'info');
-    }
+    // Un id per notifica, non uno solo per tutte: gli id fissi servono a far
+    // sostituire una notifica dalla successiva della STESSA categoria, ma
+    // "qualsiasi cosa da fuori" non e' una categoria. Con un id condiviso,
+    // "KStars e' morto" seguito da un avviso meteo lascia in barra solo il
+    // meteo, cioe' il contrario del motivo per cui le mostriamo.
+    Notifs.show(_nextExternalNotificationId(),
+        title.isEmpty ? 'Astroarch' : title,
+        message.isEmpty ? title : message,
+        highPriority: level != 'info');
     notifyListeners();
   }
 
+  /// Merges the history arriving in a snapshot with the one already held.
+  ///
+  /// Deliberately a merge and not a replacement. The bridge keeps these
+  /// alerts in memory, so a bridge that restarts sends an EMPTY list in its
+  /// next snapshot — and that is precisely the moment the alerts matter
+  /// most, because "the bridge died" is the kind of thing they report.
+  /// Replacing the local list would erase, on every connected client, the
+  /// only trace of what happened. The snapshot also carries fewer entries
+  /// than either side keeps, so a plain replacement would truncate the
+  /// history on every reconnect for no reason at all.
+  /// Ids distinti per gli avvisi esterni, che si riavvolgono su una finestra
+  /// piccola: abbastanza da non sovrascriversi a vicenda in una sessione,
+  /// non tanti da riempire la barra delle notifiche all'infinito.
+  int _externalNotificationSeq = 0;
+  int _nextExternalNotificationId() =>
+      Notifs.idExternal + (_externalNotificationSeq++ % 20);
+
   void _ingestNotificationHistory(List? raw) {
     if (raw == null) return;
-    notifications
-      ..clear()
-      ..addAll(raw.cast<Map>().map((m) => m.cast<String, dynamic>()));
+    final incoming = raw.cast<Map>().map((m) => m.cast<String, dynamic>());
+    String key(Map<String, dynamic> n) =>
+        '${n['ts']}|${n['title']}|${n['message']}';
+    final seen = notifications.map(key).toSet();
+    for (final n in incoming) {
+      if (seen.add(key(n))) notifications.add(n);
+    }
+    notifications.sort((a, b) =>
+        (a['ts'] as num? ?? 0).compareTo(b['ts'] as num? ?? 0));
     if (notifications.length > _notificationsMax) {
       notifications.removeRange(0, notifications.length - _notificationsMax);
     }

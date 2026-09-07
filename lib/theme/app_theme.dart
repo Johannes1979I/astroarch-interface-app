@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// I temi dell'app:
 ///  - pro          : ambra/blu, default operativo, alta leggibilità
@@ -162,14 +161,23 @@ class AppTheme {
         ok: dsOk, err: dsErr,
       );
 
-  // Font tematici (Google Fonts, licenza Open Font — fetch+cache a runtime).
+  // Theme fonts, Open Font Licence, BUNDLED as assets.
   // Interstellar → Exo 2 (sans tech, estetica cinematografica minimalista).
   // Star Trek → Antonio (condensato, look LCARS — alternativa libera al
   //   font ufficiale, che è protetto da copyright).
+  //
+  // They used to come from the google_fonts package, which downloads them
+  // from fonts.gstatic.com on first use and caches them afterwards. In the
+  // field, under a dark sky with no connection, that download cannot
+  // succeed, and both themes lost their typeface, falling back to the
+  // system one.
+  // These are variable fonts: Flutter uses the default instance and
+  // synthesises the weights. For finer control over weights, pass
+  // `fontVariations` on the theme's TextStyles.
   static TextTheme _interstellarFont(TextTheme base) =>
-      GoogleFonts.exo2TextTheme(base);
+      base.apply(fontFamily: 'Exo2');
   static TextTheme _starTrekFont(TextTheme base) =>
-      GoogleFonts.antonioTextTheme(base);
+      base.apply(fontFamily: 'Antonio');
 
   /// Font "13 Misa" (Zane Townsend / Unrender) per il tema Osservatorio Jupiter.
   /// v0.2.53: applicato SOLO ai TITOLI (richiesto dall'utente). È un font

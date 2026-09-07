@@ -63,13 +63,22 @@ class NotificationBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (title.isNotEmpty)
+                  // Il messaggio arriva da fuori e il bridge ne accetta fino
+                  // a 1000 caratteri: senza un tetto, uno stack trace finito
+                  // nella porta UDP schiaccia l'Expanded che contiene tutta
+                  // l'app e la rende inusabile finche' non lo si chiude. Il
+                  // testo intero resta leggibile nella cronologia.
                   Text(title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                           color: T.text(context),
                           fontSize: 12.5,
                           fontWeight: FontWeight.w700)),
                 if (message.isNotEmpty)
                   Text(message,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: T.text(context), fontSize: 12.5)),
                 if (source.isNotEmpty)
                   Text(source,
@@ -99,6 +108,7 @@ class NotificationHistorySheet extends StatelessWidget {
   static Future<void> show(BuildContext context) {
     context.read<AppState>().markNotificationsSeen();
     return showModalBottomSheet(
+      isScrollControlled: true,
       context: context,
       showDragHandle: true,
       builder: (_) => const NotificationHistorySheet(),
@@ -192,7 +202,7 @@ class NotificationHistorySheet extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: Text('Cancellare tutti gli avvisi?'.tr(dialogContext)),
         content: Text(
-            'La cronaca della sessione andrà persa, su tutti i dispositivi.'
+            'La cronologia della sessione andrà persa, su tutti i dispositivi.'
                 .tr(dialogContext)),
         actions: [
           TextButton(

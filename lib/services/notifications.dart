@@ -1,5 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'notif_backend.dart' if (dart.library.io) 'notif_backend_io.dart';
 
 /// Servizio notifiche locali (v0.2.44).
 ///
@@ -11,63 +10,30 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 /// recente. Android (specie Oppo/Xiaomi) può sospendere l'app dopo un po';
 /// per garanzia totale servirebbe un foreground service nativo. Per l'uso
 /// tipico (telefono in tasca, app aperta durante la sessione) è efficace.
+///
+/// The real implementation lives in notif_backend_io.dart; on the web the
+/// conditional import selects an inert backend, because
+/// `flutter_local_notifications` does not support the web and imports
+/// `dart:io`, which would break the build. The public API is identical on
+/// every platform, so callers need not know where they run.
 class Notifs {
-  static final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
-  static bool _inited = false;
   static bool enabled = true; // toggle utente (persistito da AppState)
 
-  static const String _channelId = 'astroarch_alerts';
-  static const String _channelName = 'Astroarch alerts';
-  static const String _channelDesc =
-      'Avvisi osservatorio: sequenza, guida, meteo, errori';
+  /// Whether this platform can show system notifications. Settings can use
+  /// it to hide a toggle that would have no effect.
+  static bool get supported => NotifBackend.available;
 
-  static Future<void> init() async {
-    if (_inited) return;
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: androidInit);
-    try {
-      await _plugin.initialize(initSettings);
-      // Crea il canale (Android 8+)
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await android?.createNotificationChannel(const AndroidNotificationChannel(
-        _channelId, _channelName,
-        description: _channelDesc,
-        importance: Importance.high,
-      ));
-      _inited = true;
-    } catch (e) {
-      if (kDebugMode) print('Notifs.init error: $e');
-    }
-  }
+  static Future<void> init() => NotifBackend.init();
 
-  /// Chiede il permesso notifiche (Android 13+). Idempotente.
-  static Future<void> requestPermission() async {
-    try {
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
-      await android?.requestNotificationsPermission();
-    } catch (_) {}
-  }
+  /// Requests notification permission. Idempotent.
+  static Future<void> requestPermission() => NotifBackend.requestPermission();
 
   /// Mostra una notifica. [id] stabile per categoria così notifiche dello
   /// stesso tipo si sostituiscono invece di accumularsi.
   static Future<void> show(int id, String title, String body,
       {bool highPriority = true}) async {
-    if (!enabled || !_inited) return;
-    final details = AndroidNotificationDetails(
-      _channelId, _channelName,
-      channelDescription: _channelDesc,
-      importance: highPriority ? Importance.high : Importance.defaultImportance,
-      priority: highPriority ? Priority.high : Priority.defaultPriority,
-      styleInformation: BigTextStyleInformation(body),
-    );
-    try {
-      await _plugin.show(id, title, body, NotificationDetails(android: details));
-    } catch (e) {
-      if (kDebugMode) print('Notifs.show error: $e');
-    }
+    if (!enabled) return;
+    return NotifBackend.show(id, title, body, highPriority: highPriority);
   }
 
   // ID stabili per categoria
