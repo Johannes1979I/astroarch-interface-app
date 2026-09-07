@@ -115,7 +115,6 @@ void main() {
     final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
     expect(rail.destinations.length, barCount);
   });
-}
 
   testWidgets('the emergency stop stays reachable with the pane closed',
       (tester) async {
@@ -126,3 +125,4 @@ void main() {
     expect(find.byIcon(Icons.vertical_split), findsOneWidget);
     expect(find.byIcon(Icons.stop), findsOneWidget);
   });
+}
