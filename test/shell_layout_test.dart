@@ -132,11 +132,15 @@ void main() {
         .floatingActionButton! as Column;
 
     await pumpShellAt(tester, ShellLayout.twoPane + 100);
-    expect(fabSlot().children.length, 2,
+    final closed = fabSlot().children;
+    // reopen button, the spacer between them, emergency stop.
+    expect(closed.length, 3,
         reason: 'pane closed: reopen button AND emergency stop');
 
     await openSecondPane(tester);
-    expect(fabSlot().children.length, 1,
-        reason: 'pane open: only the emergency stop');
+    final open = fabSlot().children;
+    expect(open.length, 1, reason: 'pane open: only the emergency stop');
+    // The stop is the last child either way: it never gets swapped out.
+    expect(closed.last.runtimeType, open.last.runtimeType);
   });
 }
