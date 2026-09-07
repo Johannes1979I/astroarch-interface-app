@@ -1,0 +1,41 @@
+name: CI
+
+# La app non aveva CI: ogni contributo esterno andava creduto sulla parola,
+# e un PR che non compila si scopriva solo montando Flutter a mano. Qui non
+# si costruisce nessun APK: le release sono firmate con la chiave di debug
+# della macchina che le compila, quindi un APK costruito su un runner avrebbe
+# firma diversa e non si installerebbe sopra quello gia' sul telefono degli
+# utenti. Questo workflow verifica e basta.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter --version
+
+      - name: flutter pub get
+        run: flutter pub get
+
+      - name: flutter analyze
+        run: flutter analyze
+
+      - name: flutter test
+        run: flutter test
+
+      # Compilare per web e' il controllo piu' economico che copre anche i
+      # target diversi da Android senza toccare nessuna firma.
+      - name: flutter build web
+        run: flutter build web --release --no-web-resources-cdn
