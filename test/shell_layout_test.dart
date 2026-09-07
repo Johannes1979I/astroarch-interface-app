@@ -116,13 +116,27 @@ void main() {
     expect(rail.destinations.length, barCount);
   });
 
-  testWidgets('the emergency stop stays reachable with the pane closed',
+  testWidgets('closing the second pane does not remove the emergency stop',
       (tester) async {
     // Regression: on a wide window with the second pane closed, the abort FAB
     // used to be *replaced* by the button that reopens the pane. It is the one
-    // control in this app that may never disappear.
+    // control in this app that may never disappear, so the reopen button has
+    // to be *added* to the slot, not swapped into it.
+    //
+    // Counted on the slot rather than looked up by icon on purpose: the abort
+    // button hides itself when no bridge is connected, which is the state a
+    // freshly built AppState is in, so an icon finder would pass here for the
+    // wrong reason.
+    Column fabSlot() => tester
+        .widget<Scaffold>(find.byType(Scaffold).first)
+        .floatingActionButton! as Column;
+
     await pumpShellAt(tester, ShellLayout.twoPane + 100);
-    expect(find.byIcon(Icons.vertical_split), findsOneWidget);
-    expect(find.byIcon(Icons.stop), findsOneWidget);
+    expect(fabSlot().children.length, 2,
+        reason: 'pane closed: reopen button AND emergency stop');
+
+    await openSecondPane(tester);
+    expect(fabSlot().children.length, 1,
+        reason: 'pane open: only the emergency stop');
   });
 }
