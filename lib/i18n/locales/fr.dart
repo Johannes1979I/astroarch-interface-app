@@ -961,7 +961,7 @@ const Map<String, String> frStrings = {
       'Aucun appareil météo/dome connecté. Appuyer sur CONNECTER sur les drivers candidats ci-dessous.',
   'Nessun driver meteo/dome/flat caricato in questo profilo Ekos.':
       'Aucun driver météo/dome/flat chargé dans ce profil Ekos.',
-  // ==== OFFLINE ALERTS ===============================================
+  // ==== OFFLINE ALERTS =============================================================
   'Chiudi avviso': 'Fermer l\'alerte',
   'Avvisi ricevuti': 'Alertes reçues',
   'Nessun avviso ricevuto': 'Aucune alerte reçue',
@@ -969,7 +969,6 @@ const Map<String, String> frStrings = {
   'Cancellare tutti gli avvisi?': 'Effacer toutes les alertes?',
   'La cronologia della sessione andrà persa, su tutti i dispositivi.':
       'L\'historique de la session sera perdu, sur tous les appareils.',
-=======
   // ==== WIDE SCREENS / WEB ==================================================
   'Chiudi pannello': 'Fermer le panneau',
   'Riapri il secondo pannello': 'Rouvrir le second panneau',
