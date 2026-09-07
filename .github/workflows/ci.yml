@@ -29,8 +29,13 @@ jobs:
       - name: flutter pub get
         run: flutter pub get
 
+      # --no-fatal-infos: la repo ha ~90 rilievi informativi preesistenti
+      # (curly_braces, prefer_final_fields, deprecated_member_use di Flutter
+      # 3.32...). Farli fallire subito significherebbe o una CI rossa per
+      # sempre o una riscrittura di massa in mezzo ai contributi altrui.
+      # Warning ed errori restano bloccanti, che e' cio' che serve davvero.
       - name: flutter analyze
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: flutter test
         run: flutter test
