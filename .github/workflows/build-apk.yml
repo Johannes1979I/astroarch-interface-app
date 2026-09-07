@@ -26,8 +26,13 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Versione fissata, non "stable": il wrapper Gradle di questo progetto e'
+      # 8.12 e il Flutter stable di oggi ne pretende 8.14. Fissarla riproduce
+      # l'ambiente con cui sono state costruite le release precedenti, invece
+      # di trascinarsi dietro un aggiornamento di Gradle non richiesto.
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.32.x'
           channel: stable
           cache: true
 
