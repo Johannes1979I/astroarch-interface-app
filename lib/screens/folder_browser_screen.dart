@@ -4,7 +4,6 @@ import '../api/api_client.dart';
 import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
-import '../widgets/common.dart';
 
 /// Navigatore di cartelle sul Pi (v0.2.48, richiesto da Tucniak).
 /// Usa /api/files/browse + /api/files/roots. Confinato nella home utente

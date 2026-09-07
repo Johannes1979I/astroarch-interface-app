@@ -157,6 +157,15 @@ class AppState extends ChangeNotifier {
     captureJobs = await CaptureJobsStore.loadJobs();
     notifyListeners();
   }
+  /// Ridisegna chi ascolta, dall'esterno.
+  ///
+  /// `notifyListeners` e' protetto: chiamarlo da una schermata funziona ma
+  /// e' un uso che l'analizzatore segnala, e che si romperebbe in silenzio
+  /// se un giorno questa classe smettesse di essere un ChangeNotifier. Le
+  /// schermate che modificano una lista in place (i job di ripresa) passano
+  /// di qui.
+  void refresh() => notifyListeners();
+
   Future<void> saveCaptureJobs() async {
     await CaptureJobsStore.saveJobs(captureJobs);
   }

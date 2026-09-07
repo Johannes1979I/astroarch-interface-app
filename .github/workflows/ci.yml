@@ -37,10 +37,22 @@ jobs:
       - name: flutter analyze
         run: flutter analyze --no-fatal-infos
 
+      # `flutter test` esce con errore se la cartella non esiste, e oggi la
+      # repo non ha ancora test: il primo arriva con il PR della web UI.
       - name: flutter test
-        run: flutter test
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "nessuna cartella test/ - saltato"
+          fi
 
       # Compilare per web e' il controllo piu' economico che copre anche i
       # target diversi da Android senza toccare nessuna firma.
       - name: flutter build web
-        run: flutter build web --release --no-web-resources-cdn
+        run: |
+          if [ -d web ]; then
+            flutter build web --release --no-web-resources-cdn
+          else
+            echo "il progetto non ha ancora il target web - saltato"
+          fi
