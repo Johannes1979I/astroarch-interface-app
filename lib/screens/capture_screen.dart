@@ -187,7 +187,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
                               if (ok == true) {
                                 s.captureJobs.clear();
                                 s.saveCaptureJobs();
-                                s.notifyListeners();
+                                s.refresh();
                               }
                             },
                     )),
@@ -836,7 +836,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
             onTap: () {
               s.captureJobs = List.of(entry.value);
               s.saveCaptureJobs();
-              s.notifyListeners();
+              s.refresh();
               Navigator.pop(c);
               showSnack(context, '${'Caricato preset "'.tr(context)}${entry.key}"');
             },

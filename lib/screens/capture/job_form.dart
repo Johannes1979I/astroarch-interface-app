@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import '../../i18n/strings.dart';
-import '../../state/app_state.dart';
 import '../../state/capture_job.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';

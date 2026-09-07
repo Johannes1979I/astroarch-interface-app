@@ -31,7 +31,6 @@ class _PlateSolveTabState extends State<PlateSolveTab> {
   // Ekos AlignSolverAction enum: 0=Sync, 1=Slew, 2=Nothing
   int _solverAction = 0;       // default: Sync
   int _solverMode = 0;         // 0=StellarSolver, 1=Remote
-  bool _showAdvanced = false;
   bool _showLog = false;
 
   static const _kBin = 'pl_bin';
