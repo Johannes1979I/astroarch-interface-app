@@ -26,6 +26,20 @@ Future<void> pumpShellAt(WidgetTester tester, double width) async {
   await tester.pump();
 }
 
+
+/// Opens the second pane the way a user does: by tapping its FAB.
+///
+/// The pane is opt-in, not on by default — two panes mean two screens
+/// polling the Raspberry at once, and nobody should get that without
+/// asking. So a test about the two-pane composition has to open it first.
+Future<void> openSecondPane(WidgetTester tester) async {
+  final fab = find.byIcon(Icons.vertical_split);
+  expect(fab, findsOneWidget,
+      reason: 'the button that opens the second pane must be reachable');
+  await tester.tap(fab);
+  await tester.pump();
+}
+
 void main() {
   testWidgets('below the rail breakpoint: bottom bar, one pane',
       (tester) async {
@@ -60,6 +74,9 @@ void main() {
   testWidgets('above twoPane: two panes side by side', (tester) async {
     await pumpShellAt(tester, ShellLayout.twoPane + 100);
     expect(find.byType(NavigationRail), findsOneWidget);
+    // One column until asked: the divider appears only once the pane is open.
+    expect(find.byType(VerticalDivider), findsNothing);
+    await openSecondPane(tester);
     // The vertical divider exists only in the two-pane composition.
     expect(find.byType(VerticalDivider), findsOneWidget);
   });
@@ -67,6 +84,7 @@ void main() {
   testWidgets('picking the first pane\'s screen in the second one swaps them',
       (tester) async {
     await pumpShellAt(tester, ShellLayout.twoPane + 100);
+    await openSecondPane(tester);
 
     final railBefore =
         tester.widget<NavigationRail>(find.byType(NavigationRail));
@@ -98,3 +116,13 @@ void main() {
     expect(rail.destinations.length, barCount);
   });
 }
+
+  testWidgets('the emergency stop stays reachable with the pane closed',
+      (tester) async {
+    // Regression: on a wide window with the second pane closed, the abort FAB
+    // used to be *replaced* by the button that reopens the pane. It is the one
+    // control in this app that may never disappear.
+    await pumpShellAt(tester, ShellLayout.twoPane + 100);
+    expect(find.byIcon(Icons.vertical_split), findsOneWidget);
+    expect(find.byIcon(Icons.stop), findsOneWidget);
+  });
