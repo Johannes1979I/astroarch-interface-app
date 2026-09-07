@@ -384,7 +384,7 @@ const Map<String, String> frStrings = {
   'SOLVE FALLITO': 'RÉSOLUTION ÉCHOUÉE',
   'Solve interrotto': 'Résolution interrompue',
   'Possibili cause: poche stelle, focus errato, scale hint sbagliato, tempo di esposizione insufficiente, image bianca/saturata.':
-      'Causes possibles: Pas assez d'étoiles, mauvaise mise au point, échelle incorrecte, exposition trop courte, image saturée.',
+      'Causes possibles: pas assez d\'étoiles, mauvaise mise au point, échelle incorrecte, exposition trop courte, image saturée.',
   'TELESCOPIO + STRUMENTAZIONE': 'TÉLESCOPE + INSTRUMENTATION',
   'Focale': 'Focale',
   'Cam': 'Cam',
