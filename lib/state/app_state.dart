@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_client.dart';
 import '../api/ws_client.dart';
 import '../i18n/strings.dart';
+import '../services/notifications.dart';
 import '../theme/app_theme.dart';
 import 'bridge_connection.dart';
 import 'capture_job.dart';
@@ -774,7 +775,100 @@ class AppState extends ChangeNotifier {
     messages
       ..clear()
       ..addAll(((snap['messages'] as List?) ?? []).cast<Map>().map((m) => m.cast<String, dynamic>()));
+    _ingestNotificationHistory(snap['notifications'] as List?);
     notifyListeners();
+  }
+
+  // === Offline notifications ===
+  //
+  // The bridge republishes on /ws/state the alerts external programs send it
+  // over UDP — astro_monitor reporting that KStars died, for one. They have
+  // to be surfaced by the app itself: on the field network there is no push
+  // service to lean on, and a page served over plain HTTP cannot even ask the
+  // browser for a system notification, since that needs a secure context.
+  //
+  // They are kept here rather than in a screen because the bridge also sends
+  // them in the WebSocket snapshot: a client that reconnects finds the ones
+  // it missed while it was asleep.
+
+  /// Notifications received from the bridge, oldest first.
+  final List<Map<String, dynamic>> notifications = [];
+  static const int _notificationsMax = 50;
+
+  /// The most recent notification the user has not dismissed yet, shown as a
+  /// banner. Null when there is nothing to show.
+  Map<String, dynamic>? pendingNotification;
+
+  /// How many notifications arrived since the user last opened the list.
+  int unseenNotifications = 0;
+
+  void dismissNotification() {
+    pendingNotification = null;
+    notifyListeners();
+  }
+
+  void markNotificationsSeen() {
+    unseenNotifications = 0;
+    notifyListeners();
+  }
+
+  /// Empties the alert history, at the source.
+  ///
+  /// The list is cleared on the bridge rather than only here, because the
+  /// snapshot of the next reconnect would otherwise bring it all back — and
+  /// other clients would go on showing it.
+  Future<void> clearNotifications() async {
+    await api?.notificationsClear();
+    notifications.clear();
+    pendingNotification = null;
+    unseenNotifications = 0;
+    notifyListeners();
+  }
+
+  /// Handles a `notification` event coming from /ws/state.
+  ///
+  /// Public because it is the whole behaviour worth testing: the WebSocket
+  /// plumbing around it is not.
+  void handleNotificationEvent(Map<String, dynamic> j) {
+    final title = j['title']?.toString() ?? '';
+    final message = j['message']?.toString() ?? '';
+    if (title.isEmpty && message.isEmpty) return;
+    final level = ['info', 'warning', 'error'].contains(j['level'])
+        ? j['level'].toString()
+        : 'info';
+    final n = <String, dynamic>{
+      'title': title,
+      'message': message,
+      'level': level,
+      'source': j['source']?.toString() ?? '',
+      'ts': (j['ts'] as num?)?.toDouble() ??
+          DateTime.now().millisecondsSinceEpoch / 1000.0,
+    };
+    notifications.add(n);
+    if (notifications.length > _notificationsMax) {
+      notifications.removeRange(0, notifications.length - _notificationsMax);
+    }
+    pendingNotification = n;
+    unseenNotifications++;
+    // Where the platform has system notifications, raise one as well: the
+    // banner is only visible with the app in front, and the point of an
+    // alert is to reach whoever is not looking.
+    if (Notifs.enabled) {
+      Notifs.show(Notifs.idExternal, title.isEmpty ? 'Astroarch' : title,
+          message.isEmpty ? title : message,
+          highPriority: level != 'info');
+    }
+    notifyListeners();
+  }
+
+  void _ingestNotificationHistory(List? raw) {
+    if (raw == null) return;
+    notifications
+      ..clear()
+      ..addAll(raw.cast<Map>().map((m) => m.cast<String, dynamic>()));
+    if (notifications.length > _notificationsMax) {
+      notifications.removeRange(0, notifications.length - _notificationsMax);
+    }
   }
 
   void _ingestWsJson(Map<String, dynamic> j) {
@@ -804,6 +898,7 @@ class AppState extends ChangeNotifier {
         messages
           ..clear()
           ..addAll(((j['messages'] as List?) ?? []).cast<Map>().map((m) => m.cast<String, dynamic>()));
+        _ingestNotificationHistory(j['notifications'] as List?);
         notifyListeners();
         break;
       case 'snapshot_end':
@@ -853,6 +948,9 @@ class AppState extends ChangeNotifier {
       case 'frame_meta':
         lastFrameMeta = j.cast<String, dynamic>();
         notifyListeners();
+        break;
+      case 'notification':
+        handleNotificationEvent(j);
         break;
       default:
         break;
