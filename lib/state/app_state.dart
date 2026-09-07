@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_client.dart';
 import '../api/ws_client.dart';
 import '../i18n/strings.dart';
+import '../services/notifications.dart';
 import '../theme/app_theme.dart';
 import 'bridge_connection.dart';
 import 'capture_job.dart';
@@ -34,13 +35,24 @@ class AppState extends ChangeNotifier {
     return bridges.first;
   }
 
+  // === Page origin (web only) ===
+  //
+  // When the interface is served by the bridge itself — the field case,
+  // where you open http://astroarch.local:8765/ from a tablet on the
+  // hotspot — host and port are already known: they are the page's own.
+  // Using them as defaults avoids asking the user for what the browser
+  // already has, leaving only the token to type.
+  static String get originHost => kIsWeb ? Uri.base.host : '';
+  static int get originPort => kIsWeb ? Uri.base.port : 8765;
+  static bool get originHttps => kIsWeb && Uri.base.scheme == 'https';
+
   // === Facades verso la bridge attiva ===
-  String get host => activeBridge?.host ?? '';
+  String get host => activeBridge?.host ?? originHost;
   set host(String v) {
     final b = activeBridge;
     if (b != null) { b.host = v; savePrefs(); }
   }
-  int get port => activeBridge?.port ?? 8765;
+  int get port => activeBridge?.port ?? originPort;
   set port(int v) {
     final b = activeBridge;
     if (b != null) { b.port = v; savePrefs(); }
@@ -50,7 +62,7 @@ class AppState extends ChangeNotifier {
     final b = activeBridge;
     if (b != null) { b.token = v; savePrefs(); }
   }
-  bool get useHttps => activeBridge?.useHttps ?? false;
+  bool get useHttps => activeBridge?.useHttps ?? originHttps;
   set useHttps(bool v) {
     final b = activeBridge;
     if (b != null) { b.useHttps = v; savePrefs(); }
@@ -783,7 +795,131 @@ class AppState extends ChangeNotifier {
     messages
       ..clear()
       ..addAll(((snap['messages'] as List?) ?? []).cast<Map>().map((m) => m.cast<String, dynamic>()));
+    _ingestNotificationHistory(snap['notifications'] as List?);
     notifyListeners();
+  }
+
+  // === Offline notifications ===
+  //
+  // The bridge republishes on /ws/state the alerts external programs send it
+  // over UDP — astro_monitor reporting that KStars died, for one. They have
+  // to be surfaced by the app itself: on the field network there is no push
+  // service to lean on, and a page served over plain HTTP cannot even ask the
+  // browser for a system notification, since that needs a secure context.
+  //
+  // They are kept here rather than in a screen because the bridge also sends
+  // them in the WebSocket snapshot: a client that reconnects finds the ones
+  // it missed while it was asleep.
+
+  /// Notifications received from the bridge, oldest first.
+  final List<Map<String, dynamic>> notifications = [];
+  static const int _notificationsMax = 50;
+
+  /// The most recent notification the user has not dismissed yet, shown as a
+  /// banner. Null when there is nothing to show.
+  Map<String, dynamic>? pendingNotification;
+
+  /// How many notifications arrived since the user last opened the list.
+  int unseenNotifications = 0;
+
+  void dismissNotification() {
+    pendingNotification = null;
+    notifyListeners();
+  }
+
+  void markNotificationsSeen() {
+    unseenNotifications = 0;
+    notifyListeners();
+  }
+
+  /// Empties the alert history, at the source.
+  ///
+  /// The list is cleared on the bridge rather than only here, because the
+  /// snapshot of the next reconnect would otherwise bring it all back — and
+  /// other clients would go on showing it.
+  Future<void> clearNotifications() async {
+    // Se non c'e' un client non si puo' svuotare la lista sul bridge, e
+    // svuotare solo quella locale e' esattamente cio' che il commento qui
+    // sopra dice di non fare: al prossimo snapshot tornerebbe tutto.
+    if (api == null) return;
+    await api!.notificationsClear();
+    notifications.clear();
+    pendingNotification = null;
+    unseenNotifications = 0;
+    notifyListeners();
+  }
+
+  /// Handles a `notification` event coming from /ws/state.
+  ///
+  /// Public because it is the whole behaviour worth testing: the WebSocket
+  /// plumbing around it is not.
+  void handleNotificationEvent(Map<String, dynamic> j) {
+    final title = j['title']?.toString() ?? '';
+    final message = j['message']?.toString() ?? '';
+    if (title.isEmpty && message.isEmpty) return;
+    final level = ['info', 'warning', 'error'].contains(j['level'])
+        ? j['level'].toString()
+        : 'info';
+    final n = <String, dynamic>{
+      'title': title,
+      'message': message,
+      'level': level,
+      'source': j['source']?.toString() ?? '',
+      'ts': (j['ts'] as num?)?.toDouble() ??
+          DateTime.now().millisecondsSinceEpoch / 1000.0,
+    };
+    notifications.add(n);
+    if (notifications.length > _notificationsMax) {
+      notifications.removeRange(0, notifications.length - _notificationsMax);
+    }
+    pendingNotification = n;
+    unseenNotifications++;
+    // Where the platform has system notifications, raise one as well: the
+    // banner is only visible with the app in front, and the point of an
+    // alert is to reach whoever is not looking.
+    // Un id per notifica, non uno solo per tutte: gli id fissi servono a far
+    // sostituire una notifica dalla successiva della STESSA categoria, ma
+    // "qualsiasi cosa da fuori" non e' una categoria. Con un id condiviso,
+    // "KStars e' morto" seguito da un avviso meteo lascia in barra solo il
+    // meteo, cioe' il contrario del motivo per cui le mostriamo.
+    Notifs.show(_nextExternalNotificationId(),
+        title.isEmpty ? 'Astroarch' : title,
+        message.isEmpty ? title : message,
+        highPriority: level != 'info');
+    notifyListeners();
+  }
+
+  /// Merges the history arriving in a snapshot with the one already held.
+  ///
+  /// Deliberately a merge and not a replacement. The bridge keeps these
+  /// alerts in memory, so a bridge that restarts sends an EMPTY list in its
+  /// next snapshot — and that is precisely the moment the alerts matter
+  /// most, because "the bridge died" is the kind of thing they report.
+  /// Replacing the local list would erase, on every connected client, the
+  /// only trace of what happened. The snapshot also carries fewer entries
+  /// than either side keeps, so a plain replacement would truncate the
+  /// history on every reconnect for no reason at all.
+  /// Ids distinti per gli avvisi esterni, che si riavvolgono su una finestra
+  /// piccola: abbastanza da non sovrascriversi a vicenda in una sessione,
+  /// non tanti da riempire la barra delle notifiche all'infinito.
+  int _externalNotificationSeq = 0;
+  int _nextExternalNotificationId() =>
+      Notifs.idExternal + (_externalNotificationSeq++ % 20);
+
+  void _ingestNotificationHistory(List? raw) {
+    if (raw == null) return;
+    final incoming = raw.cast<Map>().map((m) => m.cast<String, dynamic>());
+    String key(Map<String, dynamic> n) =>
+        '${n['ts']}|${n['title']}|${n['message']}';
+    final seen = notifications.map(key).toSet();
+    for (final n in incoming) {
+      if (seen.add(key(n))) notifications.add(n);
+    }
+    notifications.sort((a, b) =>
+        (a['ts'] as num? ?? 0).compareTo(b['ts'] as num? ?? 0));
+    if (notifications.length > _notificationsMax) {
+      notifications.removeRange(0, notifications.length - _notificationsMax);
+    }
   }
 
   void _ingestWsJson(Map<String, dynamic> j) {
@@ -813,6 +949,7 @@ class AppState extends ChangeNotifier {
         messages
           ..clear()
           ..addAll(((j['messages'] as List?) ?? []).cast<Map>().map((m) => m.cast<String, dynamic>()));
+        _ingestNotificationHistory(j['notifications'] as List?);
         notifyListeners();
         break;
       case 'snapshot_end':
@@ -862,6 +999,9 @@ class AppState extends ChangeNotifier {
       case 'frame_meta':
         lastFrameMeta = j.cast<String, dynamic>();
         notifyListeners();
+        break;
+      case 'notification':
+        handleNotificationEvent(j);
         break;
       default:
         break;

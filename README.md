@@ -136,7 +136,17 @@ manually**:
 ```bash
 flutter pub get
 flutter build apk --release
+
+# Build web (per servirla dal bridge con ASTROARCH_WEB_DIR):
+flutter build web --release --no-web-resources-cdn
 ```
+
+`--no-web-resources-cdn` non e' facoltativo: senza, Flutter scarica
+CanvasKit da `gstatic.com` al primo avvio. In postazione, dove la rete e'
+l'hotspot del Raspberry e internet non c'e', la app resterebbe una pagina
+bianca — cioe' esattamente lo scenario per cui esiste la build web. Con il
+flag, CanvasKit finisce dentro la build.
+
 
 The APK is produced in `build/app/outputs/flutter-apk/app-release.apk`.
 

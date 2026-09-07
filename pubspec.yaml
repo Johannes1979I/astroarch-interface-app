@@ -18,7 +18,6 @@ dependencies:
   fl_chart: ^0.69.0
   mobile_scanner: ^5.2.3
   flutter_local_notifications: ^18.0.1
-  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -31,10 +30,20 @@ flutter:
   assets:
     - assets/themes/
     - assets/fonts/13misa/   # font + file di licenza (clausola III Unrender)
+    - assets/fonts/exo2/      # font + licenza OFL
+    - assets/fonts/antonio/   # font + licenza OFL
   fonts:
     - family: Misa13
       fonts:
         - asset: assets/fonts/13misa/13_Misa.ttf
+    # Bundled instead of downloaded from fonts.gstatic.com: in the field
+    # there is no connection, and the themes lost their typeface.
+    - family: Exo2
+      fonts:
+        - asset: assets/fonts/exo2/Exo2.ttf
+    - family: Antonio
+      fonts:
+        - asset: assets/fonts/antonio/Antonio.ttf
 
 flutter_launcher_icons:
   android: true

@@ -14,6 +14,7 @@ The app is written in Italian first; English is a runtime translation layer (see
 flutter pub get                          # install deps
 flutter run                              # debug on attached device
 flutter build apk --release              # produce APK (uploaded as release asset)
+flutter build web --release --no-web-resources-cdn   # web build, CanvasKit incluso
 flutter analyze                          # lint (flutter_lints rules)
 flutter test                             # run tests in test/
 python build_manual.py                   # regen AstroarchInterface_Manual.pdf from sources

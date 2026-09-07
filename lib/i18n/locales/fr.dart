@@ -961,4 +961,20 @@ const Map<String, String> frStrings = {
       'Aucun appareil météo/dome connecté. Appuyer sur CONNECTER sur les drivers candidats ci-dessous.',
   'Nessun driver meteo/dome/flat caricato in questo profilo Ekos.':
       'Aucun driver météo/dome/flat chargé dans ce profil Ekos.',
+  // ==== OFFLINE ALERTS =============================================================
+  'Chiudi avviso': 'Fermer l\'alerte',
+  'Avvisi ricevuti': 'Alertes reçues',
+  'Nessun avviso ricevuto': 'Aucune alerte reçue',
+  'Cancella tutti': 'Tout effacer',
+  'Cancellare tutti gli avvisi?': 'Effacer toutes les alertes?',
+  'La cronologia della sessione andrà persa, su tutti i dispositivi.':
+      'L\'historique de la session sera perdu, sur tous les appareils.',
+  // ==== WIDE SCREENS / WEB ==================================================
+  'Chiudi pannello': 'Fermer le panneau',
+  'Riapri il secondo pannello': 'Rouvrir le second panneau',
+  'Scambia i pannelli': 'Échanger les panneaux',
+  'La scansione QR non è disponibile nel browser.':
+      'Le scan QR n\'est pas disponible dans le navigateur.',
+  'Inserisci i dati manualmente: li trovi nella dashboard sul desktop di AstroArch.':
+      'Saisissez les données à la main : elles se trouvent dans le tableau de bord AstroArch.',
 };
