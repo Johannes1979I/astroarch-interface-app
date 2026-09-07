@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../api/api_client.dart';
 import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
