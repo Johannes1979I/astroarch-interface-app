@@ -8,7 +8,7 @@ const Map<String, String> enStrings = {
     'Moduli': 'Modules',
     'Sistema': 'System',
     'Disconnetti': 'Disconnect',
-    'Bridge salvate': 'Saved bridges',
+    'Bridge salvate': 'Save bridge',
     'Aggiungi bridge': 'Add bridge',
     'Nessuna bridge salvata': 'No bridge saved',
     'Tap "+" per aggiungere il primo Raspberry':
