@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 ///  - night        : red-light, NON disturba l'adattamento al buio degli occhi
 ///  - deepSpace    : blu/viola nebulosa, con campo stellato a tema astronomia
 ///  - interstellar : sobrio cinematografico, blu-ghiaccio, font Exo 2, animato*
-///  - starTrek     : console LCARS, pannelli arancio/viola, font Oswald, animato*
+///  - starTrek     : console LCARS, pannelli arancio/viola, font Antonio, animato*
 ///  - osservatorioJupiter : sfondo = foto astronomica reale dell'utente
 ///                  (Iris NGC 7023), palette derivata dalla foto, transizione
 ///                  deep-sky zoom
