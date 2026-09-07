@@ -1,12 +1,12 @@
 {
-    "name": "astroarch_interface",
-    "short_name": "astroarch_interface",
+    "name": "Astroarch Interface",
+    "short_name": "Astroarch",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#0B0F14",
+    "theme_color": "#0B0F14",
+    "description": "Controllo remoto dell'osservatorio: KStars, Ekos, INDI e PHD2 dal browser.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

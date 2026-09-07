@@ -976,4 +976,6 @@ const Map<String, String> frStrings = {
   'Scambia i pannelli': 'Échanger les panneaux',
   'La scansione QR non è disponibile nel browser.':
       'Le scan QR n\'est pas disponible dans le navigateur.',
+  'Inserisci i dati manualmente: li trovi nella dashboard sul desktop di AstroArch.':
+      'Saisissez les données à la main : elles se trouvent dans le tableau de bord AstroArch.',
 };

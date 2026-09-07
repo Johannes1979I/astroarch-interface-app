@@ -166,23 +166,28 @@ class SettingsScreen extends StatelessWidget {
               ),
             ]),
           ),
-          const SizedBox(height: 18),
-          _sectionLabel(context, 'Notifiche'.tr(context)),
-          Container(
-            decoration: _cardDeco(context),
-            child: SwitchListTile(
-              secondary: Icon(Icons.notifications_active, color: T.accent(context)),
-              title: Text('Avvisi osservatorio'.tr(context)),
-              subtitle: Text('Sequenza finita, stella persa, errori'.tr(context),
-                  style: TextStyle(color: T.muted(context), fontSize: 11)),
-              value: s.notificationsEnabled,
-              onChanged: (v) {
-                s.setNotificationsEnabled(v);
-                Notifs.enabled = v;
-                if (v) Notifs.requestPermission();
-              },
+          // Sul web le notifiche di sistema non ci sono: mostrare
+          // l'interruttore vorrebbe dire offrire una scelta che non fa
+          // niente. Meglio non mostrarlo che mostrarlo inerte.
+          if (Notifs.supported) ...[
+            const SizedBox(height: 18),
+            _sectionLabel(context, 'Notifiche'.tr(context)),
+            Container(
+              decoration: _cardDeco(context),
+              child: SwitchListTile(
+                secondary: Icon(Icons.notifications_active, color: T.accent(context)),
+                title: Text('Avvisi osservatorio'.tr(context)),
+                subtitle: Text('Sequenza finita, stella persa, errori'.tr(context),
+                    style: TextStyle(color: T.muted(context), fontSize: 11)),
+                value: s.notificationsEnabled,
+                onChanged: (v) {
+                  s.setNotificationsEnabled(v);
+                  Notifs.enabled = v;
+                  if (v) Notifs.requestPermission();
+                },
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 18),
           _sectionLabel(context, 'Accoppiamento'.tr(context)),
           Container(

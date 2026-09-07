@@ -70,8 +70,12 @@ class _LoginScreenState extends State<LoginScreen> {
     // Se c'è già una bridge attiva, aggiorna i suoi dati. Se non c'è
     // ancora alcuna bridge, ne crea una nuova nella lista.
     if (s.activeBridge == null) {
+      // useHttps non e' sempre false: se la app e' servita in HTTPS (la web
+      // UI del bridge dietro un reverse proxy, per dire), forzare http
+      // significa costruire URL ws:// che il browser blocca come mixed
+      // content, e la connessione non parte mai.
       await s.addBridge(name: host, host: host, port: port,
-                        token: token, useHttps: false);
+                        token: token, useHttps: AppState.originHttps);
     } else {
       s.host = host;
       s.port = port;
