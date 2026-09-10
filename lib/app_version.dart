@@ -9,4 +9,4 @@
 ///
 /// REGOLA: ad ogni nuova release questa costante deve riflettere
 /// esattamente la versione APK che l'utente sta scaricando.
-const String kAppVersion = '0.3.0';
+const String kAppVersion = '0.4.0';

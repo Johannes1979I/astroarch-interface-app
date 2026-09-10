@@ -981,4 +981,76 @@ const Map<String, String> enStrings = {
         'QR scanning is not available in the browser.',
     'Inserisci i dati manualmente: li trovi nella dashboard sul desktop di AstroArch.':
         'Enter the details by hand: you will find them in the AstroArch desktop dashboard.',
+
+    // ==== SPEGNIMENTO OSSERVATORIO ====
+    'Alimentazione':
+        'Power',
+    'Spegni l\'osservatorio':
+        'Shut down the observatory',
+    'Chiude tutto e spegne il computer in cupola':
+        'Closes everything and powers off the computer in the dome',
+    'Controllo lo stato dell\'osservatorio…':
+        'Checking the observatory…',
+    'Questo bridge non supporta lo spegnimento: aggiornalo alla 0.5.0.':
+        'This bridge does not support shutdown: update it to 0.5.0.',
+    'Riavviare {0}?':
+        'Restart {0}?',
+    'Spegnere {0}?':
+        'Shut down {0}?',
+    'KStars, Ekos e PHD2 verranno chiusi e il computer dell\'osservatorio si riavvierà.':
+        'KStars, Ekos and PHD2 will be closed and the observatory computer will restart.',
+    'KStars, Ekos e PHD2 verranno chiusi e il computer dell\'osservatorio si spegnerà.':
+        'KStars, Ekos and PHD2 will be closed and the observatory computer will power off.',
+    'Per rimetterlo in funzione dovrai riaccenderlo di persona in cupola.':
+        'To bring it back you will have to switch it on yourself, in the dome.',
+    'Stai usando l\'interfaccia servita dal Raspberry: anche questa pagina smetterà di funzionare.':
+        'You are using the interface served by the Raspberry Pi: this page will stop working too.',
+    'Stai forzando nonostante:':
+        'You are forcing this despite:',
+    'RIAVVIA':
+        'RESTART',
+    'SPEGNI':
+        'SHUT DOWN',
+    'Chiusura di KStars, Ekos e PHD2…':
+        'Closing KStars, Ekos and PHD2…',
+    'Riavvio in corso…':
+        'Restarting…',
+    'Spegnimento in corso…':
+        'Shutting down…',
+    'Il Raspberry risponde ancora: attendi qualche secondo prima di togliere corrente.':
+        'The Raspberry Pi is still answering: wait a few seconds before cutting the power.',
+    'La montatura non è in park.':
+        'The mount is not parked.',
+    'C\'è una sequenza di ripresa in corso.':
+        'A capture sequence is running.',
+    'La guida è attiva.':
+        'Guiding is running.',
+    'Non togliere corrente finché non te lo dico.':
+        'Do not cut the power until I tell you.',
+    '{0} si sta riavviando.':
+        '{0} is restarting.',
+    'Ora puoi togliere corrente a {0}.':
+        'You can now cut the power to {0}.',
+    'Tra un minuto circa potrai ricollegarti.':
+        'You will be able to reconnect in about a minute.',
+    'Il sistema si è chiuso in modo ordinato: nessun file resta a metà.':
+        'The system closed in an orderly way: no file was left half-written.',
+    'Non è riuscito.':
+        'It did not work.',
+    'Chiude KStars, Ekos e PHD2, poi spegne il computer dell\'osservatorio. È il modo giusto: togliere corrente a sistema acceso può corrompere la scheda.':
+        'Closes KStars, Ekos and PHD2, then powers off the observatory computer. This is the right way: cutting the power while the system is running can corrupt the card.',
+    'Nessuna attività in corso: si può spegnere.':
+        'Nothing is running: it is safe to shut down.',
+    'Attenzione:':
+        'Warning:',
+    'Riavvia invece di spegnere':
+        'Restart instead of shutting down',
+    'Il computer si riavvia da solo.':
+        'The computer restarts by itself.',
+    'Riavvia l\'osservatorio':
+        'Restart the observatory',
+    'Forza comunque':
+        'Force anyway',
+    'Ricontrolla':
+        'Check again',
   };

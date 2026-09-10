@@ -209,6 +209,20 @@ class AppState extends ChangeNotifier {
   }
 
   // --- Connection runtime ---
+  /// Vero mentre stiamo spegnendo il Raspberry di proposito.
+  ///
+  /// Serve a distinguere "la connessione è caduta" da "l'abbiamo fatta
+  /// cadere noi": senza questa bandiera la ShellScreen mostrerebbe il
+  /// banner rosso "Connessione persa" con il pulsante RICONNETTI, che
+  /// dopo uno spegnimento voluto è una bugia e un tasto inutile.
+  bool shuttingDown = false;
+
+  void markShuttingDown(bool v) {
+    if (shuttingDown == v) return;
+    shuttingDown = v;
+    notifyListeners();
+  }
+
   String connectionStateLabel = 'disconnected';
   String wsStateLabel = 'disconnected';
   String wsFramesLabel = 'disconnected';
@@ -733,6 +747,10 @@ class AppState extends ChangeNotifier {
   /// di restare bloccata. Risolve "esco e rientro nell'app e resta fermo".
   Future<void> onAppResumed() async {
     if (api == null) return;
+    // Se stiamo spegnendo il Pi di proposito, rientrare nell'app non deve
+    // rilanciare le WebSocket contro un host che sta morendo: azzererebbe
+    // il backoff e riempirebbe l'ApiLog di errori.
+    if (shuttingDown) return;
     // 1) Verifica veloce che il bridge sia ancora raggiungibile + refresh stato.
     final ok = await refreshSnapshot();
     // 2) Riavvia le WebSocket (nuovo socket, backoff azzerato).
@@ -762,6 +780,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> disconnect() async {
+    shuttingDown = false;
     await _wsState?.stop();
     await _wsFrames?.stop();
     api?.close();

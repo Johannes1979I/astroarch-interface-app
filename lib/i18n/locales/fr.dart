@@ -977,4 +977,80 @@ const Map<String, String> frStrings = {
       'Le scan QR n\'est pas disponible dans le navigateur.',
   'Inserisci i dati manualmente: li trovi nella dashboard sul desktop di AstroArch.':
       'Saisissez les données à la main : elles se trouvent dans le tableau de bord AstroArch.',
+
+  // Mancava: in francese 'Aspetto' ricadeva sull'italiano.
+  'Aspetto':
+      'Apparence',
+
+  // ==== SPEGNIMENTO OSSERVATORIO ====
+  'Alimentazione':
+      'Alimentation',
+  'Spegni l\'osservatorio':
+      'Éteindre l\'observatoire',
+  'Chiude tutto e spegne il computer in cupola':
+      'Ferme tout et éteint l\'ordinateur du dôme',
+  'Controllo lo stato dell\'osservatorio…':
+      'Vérification de l\'observatoire…',
+  'Questo bridge non supporta lo spegnimento: aggiornalo alla 0.5.0.':
+      'Ce bridge ne gère pas l\'arrêt : mettez-le à jour en 0.5.0.',
+  'Riavviare {0}?':
+      'Redémarrer {0} ?',
+  'Spegnere {0}?':
+      'Éteindre {0} ?',
+  'KStars, Ekos e PHD2 verranno chiusi e il computer dell\'osservatorio si riavvierà.':
+      'KStars, Ekos et PHD2 seront fermés et l\'ordinateur de l\'observatoire redémarrera.',
+  'KStars, Ekos e PHD2 verranno chiusi e il computer dell\'osservatorio si spegnerà.':
+      'KStars, Ekos et PHD2 seront fermés et l\'ordinateur de l\'observatoire s\'éteindra.',
+  'Per rimetterlo in funzione dovrai riaccenderlo di persona in cupola.':
+      'Pour le remettre en marche, il faudra le rallumer sur place, dans le dôme.',
+  'Stai usando l\'interfaccia servita dal Raspberry: anche questa pagina smetterà di funzionare.':
+      'Vous utilisez l\'interface servie par le Raspberry Pi : cette page cessera aussi de fonctionner.',
+  'Stai forzando nonostante:':
+      'Vous forcez malgré :',
+  'RIAVVIA':
+      'REDÉMARRER',
+  'SPEGNI':
+      'ÉTEINDRE',
+  'Chiusura di KStars, Ekos e PHD2…':
+      'Fermeture de KStars, Ekos et PHD2…',
+  'Riavvio in corso…':
+      'Redémarrage en cours…',
+  'Spegnimento in corso…':
+      'Arrêt en cours…',
+  'Il Raspberry risponde ancora: attendi qualche secondo prima di togliere corrente.':
+      'Le Raspberry Pi répond encore : attendez quelques secondes avant de couper le courant.',
+  'La montatura non è in park.':
+      'La monture n\'est pas parquée.',
+  'C\'è una sequenza di ripresa in corso.':
+      'Une séquence de capture est en cours.',
+  'La guida è attiva.':
+      'Le guidage est actif.',
+  'Non togliere corrente finché non te lo dico.':
+      'Ne coupez pas le courant avant que je vous le dise.',
+  '{0} si sta riavviando.':
+      '{0} redémarre.',
+  'Ora puoi togliere corrente a {0}.':
+      'Vous pouvez maintenant couper le courant de {0}.',
+  'Tra un minuto circa potrai ricollegarti.':
+      'Vous pourrez vous reconnecter dans une minute environ.',
+  'Il sistema si è chiuso in modo ordinato: nessun file resta a metà.':
+      'Le système s\'est fermé proprement : aucun fichier n\'est resté à moitié écrit.',
+  'Non è riuscito.':
+      'Cela n\'a pas fonctionné.',
+  'Chiude KStars, Ekos e PHD2, poi spegne il computer dell\'osservatorio. È il modo giusto: togliere corrente a sistema acceso può corrompere la scheda.':
+      'Ferme KStars, Ekos et PHD2, puis éteint l\'ordinateur de l\'observatoire. C\'est la bonne méthode : couper le courant système allumé peut corrompre la carte.',
+  'Nessuna attività in corso: si può spegnere.':
+      'Aucune activité en cours : l\'arrêt est sûr.',
+  'Attenzione:':
+      'Attention :',
+  'Riavvia invece di spegnere':
+      'Redémarrer au lieu d\'éteindre',
+  'Il computer si riavvia da solo.':
+      'L\'ordinateur redémarre tout seul.',
+  'Riavvia l\'osservatorio':
+      'Redémarrer l\'observatoire',
+  'Forza comunque':
+      'Forcer quand même',
+  'Ricontrolla':
+      'Revérifier',
 };
