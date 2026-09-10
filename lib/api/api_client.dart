@@ -181,14 +181,18 @@ class ApiClient {
   /// dopo, quindi se non risponde entro pochi secondi non ha senso restare
   /// ad aspettare. Se la montatura non è in park, o c'è una sequenza o la
   /// guida attiva, lancia ApiException(409) con l'elenco dei motivi.
+  /// `confirm: true` non è decorativo: senza, il bridge rifiuta con 400.
+  /// Serve a impedire che una POST partita per sbaglio spenga un
+  /// osservatorio — è già successo durante lo sviluppo.
   Future<Map<String, dynamic>> systemShutdown(
           {bool force = false, String mode = 'poweroff'}) =>
-      post('/api/system/shutdown', {'force': force, 'mode': mode},
+      post('/api/system/shutdown',
+          {'confirm': true, 'force': force, 'mode': mode},
           const Duration(seconds: 8));
 
   /// Riavvio ordinato. Stesse protezioni dello spegnimento.
   Future<Map<String, dynamic>> systemReboot({bool force = false}) =>
-      post('/api/system/reboot', {'force': force},
+      post('/api/system/reboot', {'confirm': true, 'force': force},
           const Duration(seconds: 8));
 
   /// QR di accoppiamento: ritorna {host, port, token, payload, png_base64}
