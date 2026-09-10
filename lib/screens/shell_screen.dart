@@ -108,7 +108,11 @@ class _ShellScreenState extends State<ShellScreen> {
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
     // Banner connessione: mostrato quando la WS di stato NON è connessa.
-    final wsDown = s.api != null && s.wsStateLabel != 'connected';
+    // Tranne durante uno spegnimento voluto: lì la connessione cade perché
+    // lo abbiamo chiesto noi, e offrire "RICONNETTI" sarebbe una bugia.
+    final wsDown = s.api != null &&
+        s.wsStateLabel != 'connected' &&
+        !s.shuttingDown;
 
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;

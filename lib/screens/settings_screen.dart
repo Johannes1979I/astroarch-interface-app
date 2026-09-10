@@ -9,6 +9,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../services/notifications.dart';
+import 'shutdown_screen.dart';
 
 /// Schermata Settings: lingua UI + tema + QR di accoppiamento + info.
 class SettingsScreen extends StatelessWidget {
@@ -202,6 +203,23 @@ class SettingsScreen extends StatelessWidget {
               onTap: s.api == null ? null : () {
                 Navigator.push(context, MaterialPageRoute(
                     builder: (_) => const _PairingQrScreen()));
+              },
+            ),
+          ),
+          const SizedBox(height: 18),
+          _sectionLabel(context, 'Alimentazione'.tr(context)),
+          Container(
+            decoration: _cardDeco(context),
+            child: ListTile(
+              leading: Icon(Icons.power_off, color: T.err(context)),
+              title: Text('Spegni l\'osservatorio'.tr(context)),
+              subtitle: Text(
+                  'Chiude tutto e spegne il computer in cupola'.tr(context),
+                  style: TextStyle(color: T.muted(context), fontSize: 11)),
+              trailing: Icon(Icons.chevron_right, color: T.muted(context)),
+              onTap: s.api == null ? null : () {
+                Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => const ShutdownScreen()));
               },
             ),
           ),

@@ -170,6 +170,27 @@ class ApiClient {
   Future<Map<String, dynamic>> killKStars() => post('/api/system/kill_kstars');
   Future<Map<String, dynamic>> killPhd2() => post('/api/system/kill_phd2');
 
+  // --- Spegnimento ordinato (bridge >= 0.5.0) ---
+  /// Cosa succederebbe spegnendo adesso: {safe: bool, blockers: [...]}.
+  Future<Map<String, dynamic>> shutdownCheck() =>
+      get('/api/system/shutdown_check');
+
+  /// Chiude l'osservatorio e spegne il Raspberry.
+  ///
+  /// Timeout corto di proposito: il bridge risponde subito e fa il lavoro
+  /// dopo, quindi se non risponde entro pochi secondi non ha senso restare
+  /// ad aspettare. Se la montatura non è in park, o c'è una sequenza o la
+  /// guida attiva, lancia ApiException(409) con l'elenco dei motivi.
+  Future<Map<String, dynamic>> systemShutdown(
+          {bool force = false, String mode = 'poweroff'}) =>
+      post('/api/system/shutdown', {'force': force, 'mode': mode},
+          const Duration(seconds: 8));
+
+  /// Riavvio ordinato. Stesse protezioni dello spegnimento.
+  Future<Map<String, dynamic>> systemReboot({bool force = false}) =>
+      post('/api/system/reboot', {'force': force},
+          const Duration(seconds: 8));
+
   /// QR di accoppiamento: ritorna {host, port, token, payload, png_base64}
   /// generato dal bridge con l'IP Tailscale (NON l'IP LAN).
   Future<Map<String, dynamic>> pairingQr() => get('/api/system/qr');
