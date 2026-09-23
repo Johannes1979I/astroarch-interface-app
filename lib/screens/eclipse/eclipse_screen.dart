@@ -53,10 +53,17 @@ class _EclipseScreenState extends State<EclipseScreen> {
   EclipsePlan? _plan;
   bool _maximizeShots = false;
 
+  // Tipo di eclissi: Sole (default) o Luna. Cambia DB, fasi, puntamento.
+  EclipseKind _kind = EclipseKind.solar;
+  bool get _isLunar => _kind == EclipseKind.lunar;
+
   // --- DB eclissi (bundlato) ---
   List<EclipseEvent> _eclipses = [];
   EclipseEvent? _selEclipse;
   EclipsePathPoint? _selPoint;
+  // DB eclissi di LUNA (contatti calcolati dal bridge).
+  List<LunarEclipseEvent> _lunarEclipses = [];
+  LunarEclipseEvent? _selLunar;
   double? _selLat;
   double? _selLon;
   Map<String, dynamic>? _contacts; // dal bridge (astropy)
@@ -70,7 +77,34 @@ class _EclipseScreenState extends State<EclipseScreen> {
     loadEclipseDb().then((list) {
       if (mounted) setState(() => _eclipses = list);
     }).catchError((_) {});
+    loadLunarEclipseDb().then((list) {
+      if (mounted) setState(() => _lunarEclipses = list);
+    }).catchError((_) {});
   }
+
+  /// Cambia tipo eclissi (Sole/Luna): resetta selezione, contatti e imposta le
+  /// fasi di default del nuovo tipo.
+  void _setKind(EclipseKind k) => setState(() {
+        _kind = k;
+        _selEclipse = null;
+        _selLunar = null;
+        _selPoint = null;
+        _contacts = null;
+        _contactsError = null;
+        _plan = null;
+        _features
+          ..clear()
+          ..addAll(k == EclipseKind.lunar
+              ? kLunarFeatures
+              : const {
+                  EclipseFeature.baily,
+                  EclipseFeature.chromosphere,
+                  EclipseFeature.prominences,
+                  EclipseFeature.innerCorona,
+                  EclipseFeature.midCorona,
+                  EclipseFeature.outerCorona,
+                });
+      });
 
   @override
   void dispose() {
@@ -126,19 +160,35 @@ class _EclipseScreenState extends State<EclipseScreen> {
       pixelSize: _d(_pixel, 3.76),
     );
     final scope = TelescopeSpec(fRatio: _d(_fRatio, 5.5), focalLength: _d(_focalLen, 400));
-    final totSec = _i(_totalitySec, 120);
-    final c2 = DateTime(2027, 8, 2, 11, 0, 0);
-    final contacts = EclipseContacts(c2: c2, c3: c2.add(Duration(seconds: totSec)));
-    final plan = EclipsePlanner().build(
-      features: _features,
-      contacts: contacts,
-      scope: scope,
-      cam: cam,
-      gain: _camType == 'cmos' ? _d(_gain, 100) : null,
-      iso: _camType == 'dslr' ? _d(_iso, 400) : null,
-      shotsPerExposure: _i(_shots, 1),
-      maximizeShots: _maximizeShots,
-    );
+    final gain = _camType == 'cmos' ? _d(_gain, 100) : null;
+    final iso = _camType == 'dslr' ? _d(_iso, 400) : null;
+    final EclipsePlan plan;
+    if (_isLunar) {
+      // Eclissi di Luna: fasi lunghe, niente budget di totalità.
+      plan = EclipsePlanner().buildLunar(
+        features: _features,
+        scope: scope,
+        cam: cam,
+        gain: gain,
+        iso: iso,
+        shotsPerExposure: _i(_shots, 1),
+        maximizeShots: _maximizeShots,
+      );
+    } else {
+      final totSec = _i(_totalitySec, 120);
+      final c2 = DateTime(2027, 8, 2, 11, 0, 0);
+      final contacts = EclipseContacts(c2: c2, c3: c2.add(Duration(seconds: totSec)));
+      plan = EclipsePlanner().build(
+        features: _features,
+        contacts: contacts,
+        scope: scope,
+        cam: cam,
+        gain: gain,
+        iso: iso,
+        shotsPerExposure: _i(_shots, 1),
+        maximizeShots: _maximizeShots,
+      );
+    }
     setState(() => _plan = plan);
     showSnack(context, 'Piano generato'.tr(context));
   }
@@ -150,9 +200,12 @@ class _EclipseScreenState extends State<EclipseScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 40),
         children: [
+          _kindSelector(context),
+          const SizedBox(height: 8),
           _intro(context),
           _eclipseDbSection(context),
-          SectionLabel('Feature da fotografare'.tr(context)),
+          SectionLabel(
+              (_isLunar ? 'Fasi da fotografare' : 'Feature da fotografare').tr(context)),
           _featurePresets(context),
           const SizedBox(height: 8),
           _featureChips(context),
@@ -168,6 +221,33 @@ class _EclipseScreenState extends State<EclipseScreen> {
           ),
           if (_plan != null) _resultSection(context, _plan!),
         ],
+      ),
+    );
+  }
+
+  Widget _kindSelector(BuildContext c) => Row(children: [
+        Expanded(child: _kindBtn(c, EclipseKind.solar, '☀️ ${'Sole'.tr(c)}')),
+        const SizedBox(width: 8),
+        Expanded(child: _kindBtn(c, EclipseKind.lunar, '🌙 ${'Luna'.tr(c)}')),
+      ]);
+
+  Widget _kindBtn(BuildContext c, EclipseKind k, String label) {
+    final sel = _kind == k;
+    return InkWell(
+      onTap: sel ? null : () => _setKind(k),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: sel ? T.accent(c).withValues(alpha: 0.18) : T.panel(c),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: sel ? T.accent(c) : T.line(c), width: sel ? 1.5 : 1),
+        ),
+        child: Text(label,
+            style: TextStyle(
+                fontSize: 13, color: T.text(c), fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -194,6 +274,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
 
   // ============ DB eclissi: dropdown + contatti ============
   Widget _eclipseDbSection(BuildContext c) {
+    if (_isLunar) return _lunarDbSection(c);
     return Column(children: [
       SectionLabel('Carica eclissi'.tr(c)),
       _dropBox(c, DropdownButton<EclipseEvent>(
@@ -261,6 +342,122 @@ class _EclipseScreenState extends State<EclipseScreen> {
     ]);
   }
 
+  String _lunarEmoji(String type) =>
+      type == 'total' ? '🔴' : (type == 'partial' ? '🌗' : '🌘');
+
+  // ============ DB eclissi di LUNA (contatti universali + visibilità) ============
+  Widget _lunarDbSection(BuildContext c) {
+    return Column(children: [
+      SectionLabel('Carica eclissi di Luna'.tr(c)),
+      _dropBox(c, DropdownButton<LunarEclipseEvent>(
+        value: _selLunar,
+        isExpanded: true,
+        underline: const SizedBox(),
+        dropdownColor: T.panel(c),
+        hint: Text(
+            _lunarEclipses.isEmpty
+                ? 'Caricamento…'.tr(c)
+                : 'Scegli un\'eclissi di Luna'.tr(c),
+            style: TextStyle(color: T.muted(c), fontSize: 13)),
+        items: [
+          for (final e in _lunarEclipses)
+            DropdownMenuItem(
+              value: e,
+              child: Text('${_lunarEmoji(e.type)} ${e.date} · ${e.name}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: T.text(c), fontSize: 13)),
+            ),
+        ],
+        onChanged: (e) => e == null ? null : _selectLunar(e),
+      )),
+      if (_selLunar != null) ...[
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: _numField(c, 'Lat', _latCtrl)),
+          const SizedBox(width: 10),
+          Expanded(child: _numField(c, 'Lon', _lonCtrl)),
+        ]),
+        const SizedBox(height: 8),
+        GhostButton(
+          label: _gpsBusy ? 'GPS…'.tr(c) : 'Usa il mio GPS'.tr(c),
+          icon: Icons.my_location,
+          small: true,
+          onPressed: _gpsBusy ? null : _useGps,
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            'Le eclissi di Luna si vedono da tutto l\'emisfero notturno: gli orari sono universali, conta solo se la Luna è sopra il tuo orizzonte.'
+                .tr(c),
+            style: TextStyle(fontSize: 10.5, color: T.muted(c)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        _lunarInfo(c),
+      ],
+    ]);
+  }
+
+  void _selectLunar(LunarEclipseEvent e) => setState(() {
+        _selLunar = e;
+        _selLat = null;
+        _selLon = null;
+        _contacts = null;
+        _contactsError = null;
+        _plan = null;
+      });
+
+  Widget _lunarInfo(BuildContext c) {
+    final e = _selLunar!;
+    final typeIt = e.isTotal
+        ? 'Totale'
+        : (e.isPartial ? 'Parziale' : 'Penombrale');
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: T.accent(c).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: T.accent(c).withValues(alpha: 0.25)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('📅 ${e.date} · ${typeIt.tr(c)} · mag ${e.magnitude}',
+            style: TextStyle(
+                fontSize: 12.5, color: T.text(c), fontWeight: FontWeight.w600)),
+        if (e.geTime != null)
+          Text('🕑 ${'Ora max (generale)'.tr(c)}: ${e.geTime}',
+              style: TextStyle(fontSize: 10.5, color: T.muted(c))),
+        const SizedBox(height: 10),
+        GhostButton(
+          label: 'Calcola contatti + visibilità (P1–P4)'.tr(c),
+          icon: Icons.schedule,
+          small: true,
+          onPressed: _loadingContacts ? null : _calcContacts,
+        ),
+        if (_loadingContacts)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(children: [
+              SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: T.accent(c))),
+              const SizedBox(width: 8),
+              Text('Calcolo con astropy…'.tr(c),
+                  style: TextStyle(fontSize: 11, color: T.muted(c))),
+            ]),
+          ),
+        if (_contactsError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text('${'Errore: '.tr(c)}$_contactsError',
+                style: TextStyle(fontSize: 11, color: T.err(c))),
+          ),
+        if (_contacts != null) _contactsView(c, _contacts!),
+      ]),
+    );
+  }
+
   /// Legge la posizione dal GPS del telefono e (se un'eclissi è selezionata)
   /// calcola in automatico contatti e durata per quel punto.
   Future<void> _useGps() async {
@@ -287,7 +484,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
       _lonCtrl.text = pos.longitude.toStringAsFixed(4);
       // Il GPS ha priorità: ignora la città scelta dal dropdown.
       setState(() => _selPoint = null);
-      if (_selEclipse != null) await _calcContacts();
+      if (_selEclipse != null || _selLunar != null) await _calcContacts();
     } catch (e) {
       if (mounted) setState(() => _contactsError = 'GPS: $e');
     } finally {
@@ -356,6 +553,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
   }
 
   Widget _contactsView(BuildContext c, Map<String, dynamic> j) {
+    if (_isLunar) return _lunarContactsView(c, j);
     if (j['visible'] == false) {
       return Padding(
         padding: const EdgeInsets.only(top: 8),
@@ -403,6 +601,54 @@ class _EclipseScreenState extends State<EclipseScreen> {
     );
   }
 
+  Widget _lunarContactsView(BuildContext c, Map<String, dynamic> j) {
+    String t(String k) => (j[k] as String?) ?? '—';
+    final moon = (j['moon'] as Map?)?.cast<String, dynamic>();
+    final type = (j['type'] as String?) ?? 'penumbral';
+    final visible = j['visible'] == true;
+    final isTotal = type == 'total';
+    final isPartial = type == 'partial' || isTotal;
+    final mono = TextStyle(fontSize: 11.5, fontFamily: 'monospace', color: T.text(c));
+    final totSec = (j['totality_sec'] as num?)?.toInt();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (!visible)
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: T.warn(c).withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: T.warn(c).withValues(alpha: 0.5)),
+            ),
+            child: Text(
+              '⚠️ ${'Al massimo la Luna è sotto l\'orizzonte da qui'.tr(c)} (${'orari universali UT'.tr(c)}).',
+              style: TextStyle(
+                  fontSize: 11.5, color: T.text(c), fontWeight: FontWeight.w600),
+            ),
+          ),
+        Text('P1 penombra:  ${t('p1')}', style: mono),
+        if (isPartial) Text('U1 parziale:  ${t('u1')}', style: mono),
+        if (isTotal) Text('U2 totale:    ${t('u2')}', style: mono),
+        Text('${'Max'.tr(c)}:          ${t('max')}', style: mono),
+        if (isTotal) Text('U3 fine tot.: ${t('u3')}', style: mono),
+        if (isPartial) Text('U4 fine parz.:${t('u4')}', style: mono),
+        Text('P4 fine pen.: ${t('p4')}', style: mono),
+        if (isTotal && totSec != null)
+          Text('${'Totalità'.tr(c)}: ${(totSec / 60).round()} min',
+              style: TextStyle(
+                  fontSize: 11.5, color: T.text(c), fontWeight: FontWeight.w600)),
+        Text('${'Magnitudine umbrale'.tr(c)}: ${j['umbral_magnitude'] ?? '—'}',
+            style: TextStyle(fontSize: 11, color: T.muted(c))),
+        if (moon != null)
+          Text(
+              'Luna @ max: alt ${(moon['alt'] as num?)?.toStringAsFixed(1) ?? '—'}° · az ${(moon['az'] as num?)?.toStringAsFixed(1) ?? '—'}°',
+              style: TextStyle(fontSize: 11, color: T.muted(c))),
+      ]),
+    );
+  }
+
   void _selectEclipse(EclipseEvent e) => setState(() {
         _selEclipse = e;
         _selPoint = null;
@@ -433,7 +679,8 @@ class _EclipseScreenState extends State<EclipseScreen> {
     }
     final lat = double.tryParse(_latCtrl.text.trim().replaceAll(',', '.'));
     final lon = double.tryParse(_lonCtrl.text.trim().replaceAll(',', '.'));
-    if (_selEclipse == null || lat == null || lon == null) {
+    final date = _isLunar ? _selLunar?.date : _selEclipse?.date;
+    if (date == null || lat == null || lon == null) {
       setState(() => _contactsError = 'Seleziona eclissi e inserisci lat/lon'.tr(context));
       return;
     }
@@ -444,14 +691,15 @@ class _EclipseScreenState extends State<EclipseScreen> {
       _contactsError = null;
     });
     try {
-      final r = await s.api!.eclipseContacts(date: _selEclipse!.date, lat: lat, lon: lon);
+      final r = await s.api!.eclipseContacts(
+          date: date, lat: lat, lon: lon, kind: _isLunar ? 'lunar' : 'solar');
       if (mounted) {
         setState(() {
           _contacts = r;
           final ts = r['totality_sec'];
           if (ts is num && ts > 0) _totalitySec.text = '${ts.round()}';
-          // Se il punto NON è in totalità → piano per la sola fase parziale.
-          if ((r['type'] as String?) != 'total') {
+          // Solo Sole: se il punto NON è in totalità → piano per la fase parziale.
+          if (!_isLunar && (r['type'] as String?) != 'total') {
             _features
               ..clear()
               ..add(EclipseFeature.partial);
@@ -468,7 +716,16 @@ class _EclipseScreenState extends State<EclipseScreen> {
     }
   }
 
-  Widget _featurePresets(BuildContext c) => Wrap(spacing: 8, runSpacing: 8, children: [
+  Widget _featurePresets(BuildContext c) {
+    if (_isLunar) {
+      return Wrap(spacing: 8, runSpacing: 8, children: [
+        _presetChip(c, 'Tutte le fasi'.tr(c),
+            () => _setFeatures(kLunarFeatures.toSet())),
+        _presetChip(c, 'Solo totale (Luna rossa)'.tr(c),
+            () => _setFeatures({EclipseFeature.lunarTotal})),
+      ]);
+    }
+    return Wrap(spacing: 8, runSpacing: 8, children: [
         _presetChip(c, 'Totalità completa'.tr(c), () => _setFeatures({
               EclipseFeature.baily,
               EclipseFeature.chromosphere,
@@ -490,6 +747,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
               EclipseFeature.outerCorona,
             })),
       ]);
+  }
 
   Widget _presetChip(BuildContext c, String label, VoidCallback onTap) => InkWell(
         onTap: onTap,
@@ -506,16 +764,18 @@ class _EclipseScreenState extends State<EclipseScreen> {
       );
 
   Widget _featureChips(BuildContext c) {
-    // Ordine cronologico: parziale + feature di totalità.
-    const order = [
-      EclipseFeature.partial,
-      EclipseFeature.baily,
-      EclipseFeature.chromosphere,
-      EclipseFeature.prominences,
-      EclipseFeature.innerCorona,
-      EclipseFeature.midCorona,
-      EclipseFeature.outerCorona,
-    ];
+    // Ordine cronologico. Luna: penombra/parziale/totale. Sole: parziale + totalità.
+    final order = _isLunar
+        ? kLunarFeatures
+        : const [
+            EclipseFeature.partial,
+            EclipseFeature.baily,
+            EclipseFeature.chromosphere,
+            EclipseFeature.prominences,
+            EclipseFeature.innerCorona,
+            EclipseFeature.midCorona,
+            EclipseFeature.outerCorona,
+          ];
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -709,6 +969,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
                     builder: (_) => EclipseLiveView(
                       plan: plan,
                       gain: _camType == 'cmos' ? _d(_gain, 100) : null,
+                      isLunar: _isLunar,
                     ),
                   ),
                 ),

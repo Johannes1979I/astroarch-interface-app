@@ -20,7 +20,10 @@ class EclipseLiveView extends StatefulWidget {
   final EclipsePlan plan;
   final double? gain;
   final double? offset;
-  const EclipseLiveView({super.key, required this.plan, this.gain, this.offset});
+  /// true = eclissi di LUNA → l'autopuntamento punta la Luna (TRACK_LUNAR).
+  final bool isLunar;
+  const EclipseLiveView(
+      {super.key, required this.plan, this.gain, this.offset, this.isLunar = false});
 
   @override
   State<EclipseLiveView> createState() => _EclipseLiveViewState();
@@ -101,7 +104,10 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
     if (_s.api == null) return;
     await _do(() async {
       await _s.api!.eclipseArm(
-          pointSun: _pointSun, cool: _cool, coolTemp: _coolTemp);
+          pointSun: !widget.isLunar && _pointSun,
+          pointMoon: widget.isLunar && _pointSun,
+          cool: _cool,
+          coolTemp: _coolTemp);
       await _s.api!.eclipseStart();
     }, 'Direttore avviato'.tr(context));
   }
@@ -327,13 +333,17 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
                 size: 20, color: _pointSun ? T.accent(c) : T.muted(c)),
             const SizedBox(width: 8),
             Expanded(
-              child: Text('☀️ Autopunta il Sole all\'avvio'.tr(c),
+              child: Text(
+                  (widget.isLunar
+                          ? '🌙 Autopunta la Luna all\'avvio'
+                          : '☀️ Autopunta il Sole all\'avvio')
+                      .tr(c),
                   style: TextStyle(fontSize: 13, color: T.text(c))),
             ),
           ]),
         ),
       ),
-      if (_pointSun)
+      if (_pointSun && !widget.isLunar)
         Padding(
           padding: const EdgeInsets.only(bottom: 6),
           child: Text(

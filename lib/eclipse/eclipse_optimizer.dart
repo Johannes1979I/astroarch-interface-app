@@ -20,6 +20,10 @@ enum EclipseFeature {
   midCorona,
   outerCorona,
   totality,
+  // --- Eclissi di LUNA (fasi notturne, nessun filtro) ---
+  lunarPenumbral,
+  lunarPartial,
+  lunarTotal,
 }
 
 extension EclipseFeatureX on EclipseFeature {
@@ -33,6 +37,9 @@ extension EclipseFeatureX on EclipseFeature {
         EclipseFeature.midCorona => 'mid-corona',
         EclipseFeature.outerCorona => 'outer-corona',
         EclipseFeature.totality => 'totality',
+        EclipseFeature.lunarPenumbral => 'lunar-penumbral',
+        EclipseFeature.lunarPartial => 'lunar-partial',
+        EclipseFeature.lunarTotal => 'lunar-total',
       };
 
   /// Etichetta in italiano per la UI.
@@ -45,6 +52,9 @@ extension EclipseFeatureX on EclipseFeature {
         EclipseFeature.midCorona => 'Corona media',
         EclipseFeature.outerCorona => 'Corona esterna',
         EclipseFeature.totality => 'Totalità (HDR completo)',
+        EclipseFeature.lunarPenumbral => 'Penombra (Luna quasi piena)',
+        EclipseFeature.lunarPartial => 'Parziale (ombra della Terra)',
+        EclipseFeature.lunarTotal => 'Totale (Luna rossa)',
       };
 
   /// true se la feature avviene DURANTE la totalità (senza filtro).
@@ -57,9 +67,32 @@ extension EclipseFeatureX on EclipseFeature {
         EclipseFeature.outerCorona ||
         EclipseFeature.totality =>
           true,
-        EclipseFeature.partial => false,
+        EclipseFeature.partial ||
+        EclipseFeature.lunarPenumbral ||
+        EclipseFeature.lunarPartial ||
+        EclipseFeature.lunarTotal =>
+          false,
+      };
+
+  /// true se è una fase di eclissi di LUNA (notturna, nessun filtro solare).
+  bool get isLunar => switch (this) {
+        EclipseFeature.lunarPenumbral ||
+        EclipseFeature.lunarPartial ||
+        EclipseFeature.lunarTotal =>
+          true,
+        _ => false,
       };
 }
+
+/// Tipo di eclissi: Sole o Luna. Determina DB, fasi, puntamento, cartelle.
+enum EclipseKind { solar, lunar }
+
+/// Fasi selezionabili per un'eclissi di Luna (in ordine cronologico).
+const List<EclipseFeature> kLunarFeatures = [
+  EclipseFeature.lunarPenumbral,
+  EclipseFeature.lunarPartial,
+  EclipseFeature.lunarTotal,
+];
 
 /// Specifica minima della camera per il calcolo fotometrico.
 class CameraSpec {
@@ -104,6 +137,11 @@ class ExposureOptimizer {
       1 / 2000, 1 / 1000, 1 / 500, 1 / 250, 1 / 125, 1 / 60, 1 / 30,
       1 / 15, 1 / 8, 1 / 4, 1 / 2, 1, 2, 4,
     ],
+    // --- Eclissi di LUNA (f/10, ISO100). La Luna piena ~1/125s (regola Looney).
+    // La calibrazione affina: qui basta coprire il range plausibile per fase.
+    'lunar-penumbral': [1 / 500, 1 / 250, 1 / 125, 1 / 60],
+    'lunar-partial': [1 / 250, 1 / 60, 1 / 15, 1 / 4, 1],
+    'lunar-total': [1 / 4, 1 / 2, 1, 2, 4, 8, 15],
   };
 
   /// Tempi di scatto standard reali, per arrotondare i valori calcolati.
@@ -145,7 +183,8 @@ class ExposureOptimizer {
     // Limite anti-trailing (la corona esterna è esente: pose lunghe volute).
     final maxExp = _maxExposure(scope, cam);
     final limited = scaled
-        .where((e) => e <= maxExp || feature == EclipseFeature.outerCorona)
+        .where((e) =>
+            e <= maxExp || feature == EclipseFeature.outerCorona || feature.isLunar)
         .toList();
 
     if (limited.length < 2 && scaled.length >= 2) {

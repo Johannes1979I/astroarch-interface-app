@@ -509,12 +509,17 @@ class ApiClient {
       post('/api/eclipse/plan', plan);
   /// Arma la camera (UPLOAD BOTH, BLOB, gain/offset). Può richiedere qualche s.
   Future<Map<String, dynamic>> eclipseArm(
-          {bool pointSun = false, bool cool = false, double coolTemp = -10.0}) =>
+          {bool pointSun = false,
+          bool pointMoon = false,
+          bool cool = false,
+          double coolTemp = -10.0}) =>
       post('/api/eclipse/arm',
-          {'point_sun': pointSun, 'cool': cool, 'cool_temp': coolTemp},
+          {'point_sun': pointSun, 'point_moon': pointMoon,
+           'cool': cool, 'cool_temp': coolTemp},
           const Duration(seconds: 40));
   /// Punta subito la montatura sul Sole + tracking solare (azione esplicita).
   Future<Map<String, dynamic>> eclipsePointSun() => post('/api/eclipse/point_sun');
+  Future<Map<String, dynamic>> eclipsePointMoon() => post('/api/eclipse/point_moon');
   Future<Map<String, dynamic>> eclipseStart() => post('/api/eclipse/start');
   Future<Map<String, dynamic>> eclipseStatus() => get('/api/eclipse/status');
   /// Override a un tap: {'ev': ±0.5, 'skip': true, 'freeze': true|false, 'abort': true}.
@@ -523,8 +528,12 @@ class ApiClient {
   Future<void> eclipseStop() => post('/api/eclipse/stop');
   /// Contatti C1-C4 + posizione del Sole per il GPS (calcolo astropy nel bridge).
   Future<Map<String, dynamic>> eclipseContacts(
-          {required String date, required double lat, required double lon}) =>
-      get('/api/eclipse/contacts', {'date': date, 'lat': '$lat', 'lon': '$lon'},
+          {required String date,
+          required double lat,
+          required double lon,
+          String kind = 'solar'}) =>
+      get('/api/eclipse/contacts',
+          {'date': date, 'lat': '$lat', 'lon': '$lon', 'kind': kind},
           const Duration(seconds: 40));
 
   Future<void> guideStart({Map<String, dynamic>? p}) => post('/api/guide/start', p);

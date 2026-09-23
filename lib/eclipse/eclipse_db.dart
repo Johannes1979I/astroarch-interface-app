@@ -93,3 +93,51 @@ Future<List<EclipseEvent>> loadEclipseDb() async {
   events.sort((a, b) => a.date.compareTo(b.date));
   return events;
 }
+
+/// Un'eclissi di LUNA. Gli orari dei contatti sono UNIVERSALI (uguali per tutti):
+/// non c'è un percorso come per il Sole. Qui memorizziamo solo la data (+ tipo,
+/// magnitudine, Danjon); i contatti P1/U1/U2/max/U3/U4/P4 e la visibilità li
+/// calcola il bridge con astropy (geometria dell'ombra terrestre) per il lat/lon.
+class LunarEclipseEvent {
+  final String id;
+  final String type; // penumbral | partial | total
+  final String date; // YYYY-MM-DD (UT del massimo)
+  final String name;
+  final double magnitude; // magnitudine umbrale (o penombrale per le penombrali)
+  final int? danjon; // scala L 0..4 (luminosità della totalità), opzionale
+  final String? geTime; // orario del massimo UT, es. "18:11 UT"
+
+  const LunarEclipseEvent({
+    required this.id,
+    required this.type,
+    required this.date,
+    required this.name,
+    required this.magnitude,
+    this.danjon,
+    this.geTime,
+  });
+
+  bool get isTotal => type == 'total';
+  bool get isPartial => type == 'partial';
+  bool get isPenumbral => type == 'penumbral';
+
+  factory LunarEclipseEvent.fromJson(Map<String, dynamic> j) => LunarEclipseEvent(
+        id: j['id'] as String,
+        type: (j['type'] as String?) ?? 'total',
+        date: j['date'] as String,
+        name: (j['name'] as String?) ?? (j['id'] as String),
+        magnitude: (j['magnitude'] as num?)?.toDouble() ?? 0,
+        danjon: (j['danjon'] as num?)?.toInt(),
+        geTime: j['geTime'] as String?,
+      );
+}
+
+/// Carica il database eclissi di LUNA bundlato.
+Future<List<LunarEclipseEvent>> loadLunarEclipseDb() async {
+  final raw = await rootBundle.loadString('assets/eclipse/lunar_eclipses.json');
+  final j = jsonDecode(raw) as Map<String, dynamic>;
+  final list = (j['eclipses'] as List).cast<Map<String, dynamic>>();
+  final events = list.map(LunarEclipseEvent.fromJson).toList();
+  events.sort((a, b) => a.date.compareTo(b.date));
+  return events;
+}

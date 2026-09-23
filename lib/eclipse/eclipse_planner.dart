@@ -168,6 +168,11 @@ class EclipsePlanner {
         EclipseFeature.outerCorona => 6,
         EclipseFeature.totality => 3,
         EclipseFeature.partial => 9,
+        // Fasi lunari: tutte > 1 → tutte passano dalla calibrazione (nessuna
+        // fase "di sicurezza" tempo-critica come Baily nel Sole).
+        EclipseFeature.lunarPenumbral => 5,
+        EclipseFeature.lunarPartial => 4,
+        EclipseFeature.lunarTotal => 3,
       };
 
   /// Ordine cronologico delle feature di totalità (bookend Baily a C2 e C3).
@@ -249,6 +254,46 @@ class EclipsePlanner {
       totalityBudget: budget,
       overheadSec: overheadSec,
       adjustments: adjustments,
+    );
+  }
+
+  /// Piano per un'eclissi di LUNA. Più semplice del Sole: le fasi (penombra,
+  /// parziale, totale) durano a lungo (minuti/ore), quindi niente budget stretto
+  /// né bookend Baily. Ogni fase selezionata → un blocco (bracket × scatti); il
+  /// conduttore poi calibra ogni fase e spara i keeper (stesso principio del Sole).
+  EclipsePlan buildLunar({
+    required Set<EclipseFeature> features,
+    TelescopeSpec? scope,
+    CameraSpec? cam,
+    double? gain,
+    double? iso,
+    int shotsPerExposure = 1,
+    bool maximizeShots = false,
+  }) {
+    final blocks = <CaptureBlock>[];
+    // Le fasi lunari hanno tempo abbondante: se "massimizza", alza gli scatti.
+    final shots = maximizeShots
+        ? (shotsPerExposure < 5 ? 5 : shotsPerExposure)
+        : shotsPerExposure;
+    for (final f in kLunarFeatures) {
+      if (!features.contains(f)) continue;
+      final expo =
+          opt.optimizedExposures(f, scope: scope, cam: cam, gain: gain, iso: iso);
+      if (expo.isEmpty) continue;
+      blocks.add(CaptureBlock(
+        feature: f,
+        label: f.labelIt,
+        exposures: List<double>.of(expo),
+        shots: shots,
+        priority: priorityOf(f),
+      ));
+    }
+    return EclipsePlan(
+      totalityBlocks: blocks, // il conduttore li tratta come fasi da calibrare
+      partialBlocks: const [],
+      totalityBudget: null, // nessun budget stretto per la Luna
+      overheadSec: overheadSec,
+      adjustments: const [],
     );
   }
 

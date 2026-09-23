@@ -1,0 +1,16 @@
+{
+  "_note": "Eclissi di Luna 2025-2030. La 'date' e' la data UT del massimo. magnitude/geTime sono indicativi: i contatti P1/U1/U2/max/U3/U4/P4 e la visibilita' li ricalcola il bridge con astropy (astroarch_bridge/eclipse_shadow.py) per il lat/lon scelto.",
+  "eclipses": [
+    {"id": "lunar-2025-03-14", "type": "total", "date": "2025-03-14", "name": "Eclissi totale di Luna", "magnitude": 1.18, "geTime": "06:59 UT"},
+    {"id": "lunar-2025-09-07", "type": "total", "date": "2025-09-07", "name": "Eclissi totale di Luna", "magnitude": 1.36, "geTime": "18:12 UT"},
+    {"id": "lunar-2026-03-03", "type": "total", "date": "2026-03-03", "name": "Eclissi totale di Luna", "magnitude": 1.15, "geTime": "11:34 UT"},
+    {"id": "lunar-2026-08-28", "type": "partial", "date": "2026-08-28", "name": "Eclissi parziale di Luna", "magnitude": 0.93, "geTime": "04:13 UT"},
+    {"id": "lunar-2027-02-20", "type": "penumbral", "date": "2027-02-20", "name": "Eclissi penombrale di Luna", "magnitude": 0.92, "geTime": "23:13 UT"},
+    {"id": "lunar-2028-01-12", "type": "partial", "date": "2028-01-12", "name": "Eclissi parziale di Luna", "magnitude": 0.07, "geTime": "04:13 UT"},
+    {"id": "lunar-2028-07-06", "type": "partial", "date": "2028-07-06", "name": "Eclissi parziale di Luna", "magnitude": 0.39, "geTime": "18:20 UT"},
+    {"id": "lunar-2028-12-31", "type": "total", "date": "2028-12-31", "name": "Eclissi totale di Luna", "magnitude": 1.25, "geTime": "16:52 UT"},
+    {"id": "lunar-2029-06-26", "type": "total", "date": "2029-06-26", "name": "Eclissi totale di Luna (profonda)", "magnitude": 1.84, "geTime": "03:23 UT"},
+    {"id": "lunar-2029-12-20", "type": "total", "date": "2029-12-20", "name": "Eclissi totale di Luna", "magnitude": 1.12, "geTime": "22:42 UT"},
+    {"id": "lunar-2030-06-15", "type": "partial", "date": "2030-06-15", "name": "Eclissi parziale di Luna", "magnitude": 0.50, "geTime": "18:34 UT"}
+  ]
+}
