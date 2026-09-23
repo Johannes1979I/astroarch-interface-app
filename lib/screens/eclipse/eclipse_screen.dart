@@ -207,7 +207,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
           for (final e in _eclipses)
             DropdownMenuItem(
               value: e,
-              child: Text('${e.isTotal ? '🌑' : '🌓'} ${e.name}',
+              child: Text('${e.isTotal ? '🌑' : '🌓'} ${e.date} · ${e.name}',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: T.text(c), fontSize: 13)),
             ),
@@ -285,7 +285,8 @@ class _EclipseScreenState extends State<EclipseScreen> {
       final pos = await Geolocator.getCurrentPosition();
       _latCtrl.text = pos.latitude.toStringAsFixed(4);
       _lonCtrl.text = pos.longitude.toStringAsFixed(4);
-      setState(() {});
+      // Il GPS ha priorità: ignora la città scelta dal dropdown.
+      setState(() => _selPoint = null);
       if (_selEclipse != null) await _calcContacts();
     } catch (e) {
       if (mounted) setState(() => _contactsError = 'GPS: $e');
@@ -314,8 +315,11 @@ class _EclipseScreenState extends State<EclipseScreen> {
         border: Border.all(color: T.accent(c).withValues(alpha: 0.25)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('${e.date} · ${e.isTotal ? 'Totale' : 'Anulare'} · mag ${e.magnitude}',
-            style: TextStyle(fontSize: 12, color: T.text(c), fontWeight: FontWeight.w600)),
+        Text('📅 ${e.date} · ${e.isTotal ? 'Totale' : 'Anulare'} · mag ${e.magnitude}',
+            style: TextStyle(fontSize: 12.5, color: T.text(c), fontWeight: FontWeight.w600)),
+        if (e.geTime != null)
+          Text('🕑 ${'Ora max (generale)'.tr(c)}: ${e.geTime}  ·  ${'ora locale dai contatti'.tr(c)}',
+              style: TextStyle(fontSize: 10.5, color: T.muted(c))),
         if (_selPoint != null)
           Padding(
             padding: const EdgeInsets.only(top: 2),
@@ -352,17 +356,45 @@ class _EclipseScreenState extends State<EclipseScreen> {
   }
 
   Widget _contactsView(BuildContext c, Map<String, dynamic> j) {
+    if (j['visible'] == false) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: Text('Eclissi non visibile da questa posizione.'.tr(c),
+            style: TextStyle(fontSize: 12, color: T.err(c), fontWeight: FontWeight.w600)),
+      );
+    }
     String t(String k) => (j[k] as String?) ?? '—';
     final sun = (j['sun'] as Map?)?.cast<String, dynamic>();
-    const rows = [['C1', 'c1'], ['C2', 'c2'], ['Max', 'max'], ['C3', 'c3'], ['C4', 'c4']];
+    final isTotal = (j['type'] as String?) == 'total';
+    final cov = (j['coverage_pct'] as num?)?.toDouble();
+    final mono = TextStyle(fontSize: 11.5, fontFamily: 'monospace', color: T.text(c));
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        for (final r in rows)
-          Text('${r[0]}: ${t(r[1])}',
-              style: TextStyle(fontSize: 11.5, fontFamily: 'monospace', color: T.text(c))),
-        if (j['totality_sec'] != null)
+        if (!isTotal)
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: T.warn(c).withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: T.warn(c).withValues(alpha: 0.5)),
+            ),
+            child: Text(
+              '⚠️ ${'Qui NON sei in totalità'.tr(c)}${cov != null ? ' — ${'copertura max'.tr(c)} ${cov.toStringAsFixed(1)}%' : ''}. ${'Piano impostato per la fase parziale (filtro).'.tr(c)}',
+              style: TextStyle(fontSize: 11.5, color: T.text(c), fontWeight: FontWeight.w600),
+            ),
+          ),
+        Text('C1: ${t('c1')}', style: mono),
+        if (isTotal) Text('C2: ${t('c2')}', style: mono),
+        Text('${'Max'.tr(c)}: ${t('max')}', style: mono),
+        if (isTotal) Text('C3: ${t('c3')}', style: mono),
+        Text('C4: ${t('c4')}', style: mono),
+        if (isTotal && j['totality_sec'] != null)
           Text('${'Totalità'.tr(c)}: ${j['totality_sec']}s',
+              style: TextStyle(fontSize: 11.5, color: T.text(c), fontWeight: FontWeight.w600)),
+        if (!isTotal && cov != null)
+          Text('${'Copertura massima'.tr(c)}: ${cov.toStringAsFixed(1)}%',
               style: TextStyle(fontSize: 11.5, color: T.text(c), fontWeight: FontWeight.w600)),
         if (sun != null)
           Text('Sole @ max: alt ${(sun['alt'] as num?)?.toStringAsFixed(1) ?? '—'}° · az ${(sun['az'] as num?)?.toStringAsFixed(1) ?? '—'}°',
@@ -418,6 +450,12 @@ class _EclipseScreenState extends State<EclipseScreen> {
           _contacts = r;
           final ts = r['totality_sec'];
           if (ts is num && ts > 0) _totalitySec.text = '${ts.round()}';
+          // Se il punto NON è in totalità → piano per la sola fase parziale.
+          if ((r['type'] as String?) != 'total') {
+            _features
+              ..clear()
+              ..add(EclipseFeature.partial);
+          }
           _plan = null;
         });
       }
