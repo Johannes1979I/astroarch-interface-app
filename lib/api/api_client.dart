@@ -502,6 +502,21 @@ class ApiClient {
   Future<void> guideEkosCalibrate() => post('/api/guide/ekos_calibrate');
   Future<void> guideEkosDither() => post('/api/guide/ekos_dither');
   Future<void> guideEkosLoop() => post('/api/guide/ekos_loop');
+
+  // === Eclissi — conduttore live via bridge (v0.4.1) ===
+  /// Invia il piano (blocchi + gain/offset + durata) al conduttore del bridge.
+  Future<Map<String, dynamic>> eclipsePlan(Map<String, dynamic> plan) =>
+      post('/api/eclipse/plan', plan);
+  /// Arma la camera (UPLOAD BOTH, BLOB, gain/offset). Può richiedere qualche s.
+  Future<Map<String, dynamic>> eclipseArm() =>
+      post('/api/eclipse/arm', null, const Duration(seconds: 30));
+  Future<Map<String, dynamic>> eclipseStart() => post('/api/eclipse/start');
+  Future<Map<String, dynamic>> eclipseStatus() => get('/api/eclipse/status');
+  /// Override a un tap: {'ev': ±0.5, 'skip': true, 'freeze': true|false, 'abort': true}.
+  Future<Map<String, dynamic>> eclipseOverride(Map<String, dynamic> ov) =>
+      post('/api/eclipse/override', ov);
+  Future<void> eclipseStop() => post('/api/eclipse/stop');
+
   Future<void> guideStart({Map<String, dynamic>? p}) => post('/api/guide/start', p);
   Future<void> guideStop() => post('/api/guide/stop');
   Future<Map<String, dynamic>> guideDither({

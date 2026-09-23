@@ -27,6 +27,7 @@ import 'setup_screen.dart';
 import 'settings_screen.dart';
 import 'analyze_screen.dart';
 import 'scheduler_screen.dart';
+import 'eclipse/eclipse_screen.dart';
 
 /// Key globale dello Scaffold di Shell, usata dalle schermate annidate
 /// per aprire il drawer (Scaffold.of() trova lo Scaffold locale, non Shell).
@@ -417,6 +418,10 @@ class _AppDrawer extends StatelessWidget {
             _navTile(context, Icons.calendar_month, 'Scheduler'.tr(context), () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const SchedulerScreen()));
+            }),
+            _navTile(context, Icons.brightness_3, 'Eclissi'.tr(context), () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const EclipseScreen()));
             }),
             _navTile(context, Icons.bookmarks_outlined, 'Setup / Profili'.tr(context), () {
               Navigator.pop(context);
