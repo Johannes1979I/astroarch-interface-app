@@ -44,6 +44,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
   final _shots = TextEditingController(text: '1');
 
   EclipsePlan? _plan;
+  bool _maximizeShots = false;
 
   @override
   void dispose() {
@@ -110,6 +111,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
       gain: _camType == 'cmos' ? _d(_gain, 100) : null,
       iso: _camType == 'dslr' ? _d(_iso, 400) : null,
       shotsPerExposure: _i(_shots, 1),
+      maximizeShots: _maximizeShots,
     );
     setState(() => _plan = plan);
     showSnack(context, 'Piano generato'.tr(context));
@@ -271,12 +273,28 @@ class _EclipseScreenState extends State<EclipseScreen> {
         Row(children: [
           Expanded(child: _numField(c, 'Durata totalità (s)'.tr(c), _totalitySec)),
           const SizedBox(width: 10),
-          Expanded(child: _numField(c, 'Scatti per posa'.tr(c), _shots)),
+          Expanded(
+            child: _maximizeShots
+                ? const SizedBox()
+                : _numField(c, 'Scatti per posa'.tr(c), _shots),
+          ),
         ]),
+        const SizedBox(height: 10),
+        ChipToggle(
+          label: 'Massimizza scatti (riempi il tempo)'.tr(c),
+          selected: _maximizeShots,
+          onTap: () => setState(() {
+            _maximizeShots = !_maximizeShots;
+            _plan = null;
+          }),
+        ),
         const SizedBox(height: 6),
         Text(
-          'Suggerimento: prendi la durata esatta della totalità dal tuo GPS in Eclipse Commander.'
-              .tr(c),
+          _maximizeShots
+              ? 'Ogni fase riceve il massimo numero di scatti che entra nel tempo (più frame = più segnale da impilare). Baily/cromosfera restano limitate perché durano pochi secondi.'
+                  .tr(c)
+              : 'Suggerimento: prendi la durata esatta della totalità dal tuo GPS in Eclipse Commander.'
+                  .tr(c),
           style: TextStyle(fontSize: 10.5, color: T.muted(c)),
         ),
       ]);

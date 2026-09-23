@@ -128,7 +128,7 @@ class EclipsePlan {
   /// Payload JSON per il conduttore del bridge (`POST /api/eclipse/plan`).
   /// Invia i blocchi di totalità (il fire-loop live); la fase parziale resta
   /// gestita a parte (filtro manuale).
-  Map<String, dynamic> bridgePayload({double? gain, double? offset}) => {
+  Map<String, dynamic> bridgePayload({double? gain, double? offset, String? device}) => {
         'blocks': [
           for (final b in totalityBlocks)
             {
@@ -141,6 +141,7 @@ class EclipsePlan {
         ],
         if (gain != null) 'gain': gain,
         if (offset != null) 'offset': offset,
+        if (device != null && device.isNotEmpty) 'device': device,
         'overhead_sec': overheadSec,
         if (totalityBudget != null) 'totality_sec': totalityBudget!.inSeconds,
       };
@@ -188,6 +189,7 @@ class EclipsePlanner {
     double? gain,
     double? iso,
     int shotsPerExposure = 1,
+    bool maximizeShots = false,
   }) {
     final adjustments = <String>[];
 
@@ -213,10 +215,14 @@ class EclipsePlanner {
       ));
     }
 
-    // --- Budget-tempo: riduci la profondità finché rientra in totalità ---
+    // --- Budget-tempo ---
     final budget = contacts.totality;
     if (budget != null) {
-      _applyTimeBudget(totality, budget, adjustments);
+      if (maximizeShots) {
+        _maximizeShots(totality, budget, adjustments);
+      } else {
+        _applyTimeBudget(totality, budget, adjustments);
+      }
     }
 
     // --- Blocchi di fase parziale (filtro inserito, fuori dal budget) ---
@@ -243,6 +249,43 @@ class EclipsePlanner {
       overheadSec: overheadSec,
       adjustments: adjustments,
     );
+  }
+
+  /// Massimizza il numero di scatti per fase riempiendo il budget di totalità:
+  /// ogni blocco parte da 1 passaggio, poi si aggiungono passaggi (bilanciando
+  /// tra le fasi, dando al blocco con meno scatti) finché il tempo lo consente.
+  /// Le fasi transitorie (Baily, cromosfera) hanno un tetto perché il fenomeno
+  /// dura pochi secondi. Serve a integrare segnale: più frame da impilare.
+  void _maximizeShots(
+      List<CaptureBlock> blocks, Duration budget, List<String> adjustments) {
+    final budgetSec = budget.inSeconds.toDouble();
+    for (var i = 0; i < blocks.length; i++) {
+      blocks[i] = blocks[i].copyWith(shots: 1);
+    }
+    double perPass(CaptureBlock b) =>
+        b.copyWith(shots: 1).estimate(overheadSec).inMilliseconds / 1000.0;
+    double used() => blocks.fold(
+        0.0, (a, b) => a + b.estimate(overheadSec).inMilliseconds / 1000.0);
+    int cap(EclipseFeature f) => switch (f) {
+          EclipseFeature.baily => 2, // fenomeno di pochi secondi
+          EclipseFeature.chromosphere => 3,
+          _ => 1 << 30, // corona/protuberanze: nessun tetto pratico
+        };
+    var guard = 0;
+    while (guard < 10000) {
+      guard++;
+      CaptureBlock? cand;
+      for (final b in blocks) {
+        if (b.shots >= cap(b.feature)) continue;
+        if (used() + perPass(b) > budgetSec) continue;
+        if (cand == null || b.shots < cand.shots) cand = b;
+      }
+      if (cand == null) break;
+      final i = blocks.indexOf(cand);
+      blocks[i] = cand.copyWith(shots: cand.shots + 1);
+    }
+    final total = blocks.fold(0, (a, b) => a + b.frames);
+    adjustments.add('Scatti massimizzati: $total frame nel tempo disponibile');
   }
 
   /// Riduce i blocchi finché la somma stimata rientra nel [budget].

@@ -114,5 +114,27 @@ void main() {
       expect(plan.fits, isTrue);
       expect(plan.adjustments, isEmpty);
     });
+
+    test('massimizza scatti: riempie il budget, più frame del fisso, Baily capped', () {
+      final planner = EclipsePlanner();
+      final fixed = planner.build(
+        features: allFeatures,
+        contacts: contactsWithTotality(180),
+        scope: scope, cam: cam, gain: 100, shotsPerExposure: 1,
+      );
+      final maxed = planner.build(
+        features: allFeatures,
+        contacts: contactsWithTotality(180),
+        scope: scope, cam: cam, gain: 100, maximizeShots: true,
+      );
+      expect(maxed.fits, isTrue, reason: 'deve stare nel budget');
+      expect(maxed.totalityFrames, greaterThan(fixed.totalityFrames),
+          reason: 'più frame rispetto a 1 scatto fisso');
+      // Baily resta limitata (fenomeno transitorio).
+      for (final b in maxed.totalityBlocks
+          .where((b) => b.feature == EclipseFeature.baily)) {
+        expect(b.shots, lessThanOrEqualTo(2));
+      }
+    });
   });
 }

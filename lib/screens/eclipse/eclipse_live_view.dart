@@ -57,8 +57,10 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
       _sendError = null;
     });
     try {
-      await _s.api!.eclipsePlan(
-          widget.plan.bridgePayload(gain: widget.gain, offset: widget.offset));
+      // Usa SEMPRE la camera principale selezionata (non quella di guida).
+      final dev = _s.selectedCamera ?? _s.primaryCameraAuto;
+      await _s.api!.eclipsePlan(widget.plan.bridgePayload(
+          gain: widget.gain, offset: widget.offset, device: dev));
       await _refresh();
     } on ApiException catch (e) {
       _sendError = e.body;
@@ -285,7 +287,20 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
 
   Widget _armSection(BuildContext c) {
     final canStart = _phase != 'idle' && _s.api != null;
+    final dev = _s.selectedCamera ?? _s.primaryCameraAuto;
     return Column(children: [
+      if (dev != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Row(children: [
+            Icon(Icons.camera_alt_outlined, size: 14, color: T.muted(c)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text('${'Camera'.tr(c)}: $dev',
+                  style: TextStyle(fontSize: 12.5, color: T.text(c), fontWeight: FontWeight.w600)),
+            ),
+          ]),
+        ),
       Text(
         'Arma la camera (upload+BLOB) e avvia il conduttore a C2. Il fire-loop resta nel bridge anche se il telefono si disconnette.'
             .tr(c),
