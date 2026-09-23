@@ -31,6 +31,7 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
   Map<String, dynamic> _status = {};
   bool _sending = false;
   String? _sendError;
+  bool _pointSun = false; // spunta: autopuntamento del Sole all'avvio
 
   @override
   void initState() {
@@ -97,7 +98,7 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
   Future<void> _armAndStart() async {
     if (_s.api == null) return;
     await _do(() async {
-      await _s.api!.eclipseArm();
+      await _s.api!.eclipseArm(pointSun: _pointSun);
       await _s.api!.eclipseStart();
     }, 'Direttore avviato'.tr(context));
   }
@@ -306,6 +307,33 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
             .tr(c),
         style: TextStyle(fontSize: 12, color: T.muted(c)),
       ),
+      const SizedBox(height: 6),
+      // Spunta: autopuntamento del Sole all'avvio (scelta dell'utente).
+      InkWell(
+        onTap: () => setState(() => _pointSun = !_pointSun),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(children: [
+            Icon(_pointSun ? Icons.check_box : Icons.check_box_outline_blank,
+                size: 20, color: _pointSun ? T.accent(c) : T.muted(c)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('☀️ Autopunta il Sole all\'avvio'.tr(c),
+                  style: TextStyle(fontSize: 13, color: T.text(c))),
+            ),
+          ]),
+        ),
+      ),
+      if (_pointSun)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            '⚠️ La montatura si muoverà verso il Sole. Tienilo SPENTO per i test notturni (Luna).'
+                .tr(c),
+            style: TextStyle(fontSize: 10.5, color: T.warn(c)),
+          ),
+        ),
       const SizedBox(height: 10),
       PrimaryButton(
         label: 'ARMA E AVVIA (C2)'.tr(c),

@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import '../../i18n/strings.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import 'package:provider/provider.dart';
+import '../../api/api_client.dart';
+import '../../state/app_state.dart';
 import '../../eclipse/eclipse_optimizer.dart';
 import '../../eclipse/eclipse_planner.dart';
+import '../../eclipse/eclipse_db.dart';
 import 'eclipse_live_view.dart';
 
 /// Sezione Eclissi — pianificazione (Fase 2, punto 1).
@@ -45,6 +49,24 @@ class _EclipseScreenState extends State<EclipseScreen> {
 
   EclipsePlan? _plan;
   bool _maximizeShots = false;
+
+  // --- DB eclissi (bundlato) ---
+  List<EclipseEvent> _eclipses = [];
+  EclipseEvent? _selEclipse;
+  EclipsePathPoint? _selPoint;
+  double? _selLat;
+  double? _selLon;
+  Map<String, dynamic>? _contacts; // dal bridge (astropy)
+  bool _loadingContacts = false;
+  String? _contactsError;
+
+  @override
+  void initState() {
+    super.initState();
+    loadEclipseDb().then((list) {
+      if (mounted) setState(() => _eclipses = list);
+    }).catchError((_) {});
+  }
 
   @override
   void dispose() {
@@ -125,6 +147,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 40),
         children: [
           _intro(context),
+          _eclipseDbSection(context),
           SectionLabel('Feature da fotografare'.tr(context)),
           _featurePresets(context),
           const SizedBox(height: 8),
@@ -164,6 +187,175 @@ class _EclipseScreenState extends State<EclipseScreen> {
           ),
         ]),
       );
+
+  // ============ DB eclissi: dropdown + contatti ============
+  Widget _eclipseDbSection(BuildContext c) {
+    return Column(children: [
+      SectionLabel('Carica eclissi'.tr(c)),
+      _dropBox(c, DropdownButton<EclipseEvent>(
+        value: _selEclipse,
+        isExpanded: true,
+        underline: const SizedBox(),
+        dropdownColor: T.panel(c),
+        hint: Text(_eclipses.isEmpty ? 'Caricamento…'.tr(c) : 'Scegli un\'eclissi'.tr(c),
+            style: TextStyle(color: T.muted(c), fontSize: 13)),
+        items: [
+          for (final e in _eclipses)
+            DropdownMenuItem(
+              value: e,
+              child: Text('${e.isTotal ? '🌑' : '🌓'} ${e.name}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: T.text(c), fontSize: 13)),
+            ),
+        ],
+        onChanged: (e) => e == null ? null : _selectEclipse(e),
+      )),
+      if (_selEclipse != null) ...[
+        const SizedBox(height: 8),
+        _dropBox(c, DropdownButton<EclipsePathPoint>(
+          value: _selPoint,
+          isExpanded: true,
+          underline: const SizedBox(),
+          dropdownColor: T.panel(c),
+          hint: Text('Scegli la località (durata)'.tr(c),
+              style: TextStyle(color: T.muted(c), fontSize: 13)),
+          items: [
+            for (final p in _selEclipse!.path)
+              DropdownMenuItem(
+                value: p,
+                child: Text('${p.location} — ${p.duration}s',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: T.text(c), fontSize: 13)),
+              ),
+          ],
+          onChanged: (p) => p == null ? null : _selectPoint(p),
+        )),
+        const SizedBox(height: 8),
+        _eclipseInfo(c),
+      ],
+    ]);
+  }
+
+  Widget _dropBox(BuildContext c, Widget child) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: T.panel(c),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: T.line(c)),
+        ),
+        child: child,
+      );
+
+  Widget _eclipseInfo(BuildContext c) {
+    final e = _selEclipse!;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: T.accent(c).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: T.accent(c).withValues(alpha: 0.25)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('${e.date} · ${e.isTotal ? 'Totale' : 'Anulare'} · mag ${e.magnitude}',
+            style: TextStyle(fontSize: 12, color: T.text(c), fontWeight: FontWeight.w600)),
+        if (_selPoint != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+                '${_selPoint!.location} — ${_selPoint!.duration}s  (${_selLat!.toStringAsFixed(2)}, ${_selLon!.toStringAsFixed(2)})',
+                style: TextStyle(fontSize: 11, color: T.muted(c))),
+          ),
+        const SizedBox(height: 10),
+        GhostButton(
+          label: 'Calcola contatti dal bridge (C1–C4 + Sole)'.tr(c),
+          icon: Icons.schedule,
+          small: true,
+          onPressed: (_selPoint == null || _loadingContacts) ? null : _calcContacts,
+        ),
+        if (_loadingContacts)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(children: [
+              SizedBox(width: 14, height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: T.accent(c))),
+              const SizedBox(width: 8),
+              Text('Calcolo con astropy…'.tr(c), style: TextStyle(fontSize: 11, color: T.muted(c))),
+            ]),
+          ),
+        if (_contactsError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text('${'Errore: '.tr(c)}$_contactsError',
+                style: TextStyle(fontSize: 11, color: T.err(c))),
+          ),
+        if (_contacts != null) _contactsView(c, _contacts!),
+      ]),
+    );
+  }
+
+  Widget _contactsView(BuildContext c, Map<String, dynamic> j) {
+    String t(String k) => (j[k] as String?) ?? '—';
+    final sun = (j['sun'] as Map?)?.cast<String, dynamic>();
+    const rows = [['C1', 'c1'], ['C2', 'c2'], ['Max', 'max'], ['C3', 'c3'], ['C4', 'c4']];
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (final r in rows)
+          Text('${r[0]}: ${t(r[1])}',
+              style: TextStyle(fontSize: 11.5, fontFamily: 'monospace', color: T.text(c))),
+        if (j['totality_sec'] != null)
+          Text('${'Totalità'.tr(c)}: ${j['totality_sec']}s',
+              style: TextStyle(fontSize: 11.5, color: T.text(c), fontWeight: FontWeight.w600)),
+        if (sun != null)
+          Text('Sole @ max: alt ${(sun['alt'] as num?)?.toStringAsFixed(1) ?? '—'}° · az ${(sun['az'] as num?)?.toStringAsFixed(1) ?? '—'}°',
+              style: TextStyle(fontSize: 11, color: T.muted(c))),
+      ]),
+    );
+  }
+
+  void _selectEclipse(EclipseEvent e) => setState(() {
+        _selEclipse = e;
+        _selPoint = null;
+        _selLat = null;
+        _selLon = null;
+        _contacts = null;
+        _contactsError = null;
+        _plan = null;
+      });
+
+  void _selectPoint(EclipsePathPoint p) => setState(() {
+        _selPoint = p;
+        _selLat = p.lat;
+        _selLon = p.lon;
+        if (p.duration > 0) _totalitySec.text = '${p.duration}';
+        _contacts = null;
+        _contactsError = null;
+        _plan = null;
+      });
+
+  Future<void> _calcContacts() async {
+    final s = context.read<AppState>();
+    if (s.api == null) {
+      setState(() => _contactsError = 'Bridge non connesso'.tr(context));
+      return;
+    }
+    if (_selEclipse == null || _selLat == null || _selLon == null) return;
+    setState(() {
+      _loadingContacts = true;
+      _contactsError = null;
+    });
+    try {
+      final r = await s.api!.eclipseContacts(
+          date: _selEclipse!.date, lat: _selLat!, lon: _selLon!);
+      if (mounted) setState(() => _contacts = r);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _contactsError = e.body);
+    } catch (e) {
+      if (mounted) setState(() => _contactsError = '$e');
+    } finally {
+      if (mounted) setState(() => _loadingContacts = false);
+    }
+  }
 
   Widget _featurePresets(BuildContext c) => Wrap(spacing: 8, runSpacing: 8, children: [
         _presetChip(c, 'Totalità completa'.tr(c), () => _setFeatures({
