@@ -3,6 +3,7 @@ import '../../i18n/strings.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../api/api_client.dart';
 import '../../state/app_state.dart';
 import '../../eclipse/eclipse_optimizer.dart';
@@ -46,6 +47,8 @@ class _EclipseScreenState extends State<EclipseScreen> {
   final _iso = TextEditingController(text: '400');
   final _totalitySec = TextEditingController(text: '120');
   final _shots = TextEditingController(text: '1');
+  final _latCtrl = TextEditingController();
+  final _lonCtrl = TextEditingController();
 
   EclipsePlan? _plan;
   bool _maximizeShots = false;
@@ -58,6 +61,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
   double? _selLon;
   Map<String, dynamic>? _contacts; // dal bridge (astropy)
   bool _loadingContacts = false;
+  bool _gpsBusy = false;
   String? _contactsError;
 
   @override
@@ -70,7 +74,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
 
   @override
   void dispose() {
-    for (final c in [_fRatio, _focalLen, _pixel, _unityGain, _gain, _iso, _totalitySec, _shots]) {
+    for (final c in [_fRatio, _focalLen, _pixel, _unityGain, _gain, _iso, _totalitySec, _shots, _latCtrl, _lonCtrl]) {
       c.dispose();
     }
     super.dispose();
@@ -231,9 +235,63 @@ class _EclipseScreenState extends State<EclipseScreen> {
           onChanged: (p) => p == null ? null : _selectPoint(p),
         )),
         const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: _numField(c, 'Lat', _latCtrl)),
+          const SizedBox(width: 10),
+          Expanded(child: _numField(c, 'Lon', _lonCtrl)),
+        ]),
+        const SizedBox(height: 8),
+        GhostButton(
+          label: _gpsBusy ? 'GPS…'.tr(c) : 'Usa il mio GPS'.tr(c),
+          icon: Icons.my_location,
+          small: true,
+          onPressed: _gpsBusy ? null : _useGps,
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            'Scegli una località dal percorso, inserisci il TUO GPS, o usa la posizione del telefono. Malaga città non è tra i punti: al bordo nord la totalità è breve (~115s) — spostati a sud per più minuti.'
+                .tr(c),
+            style: TextStyle(fontSize: 10.5, color: T.muted(c)),
+          ),
+        ),
+        const SizedBox(height: 8),
         _eclipseInfo(c),
       ],
     ]);
+  }
+
+  /// Legge la posizione dal GPS del telefono e (se un'eclissi è selezionata)
+  /// calcola in automatico contatti e durata per quel punto.
+  Future<void> _useGps() async {
+    setState(() {
+      _gpsBusy = true;
+      _contactsError = null;
+    });
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        setState(() => _contactsError = 'GPS spento sul telefono'.tr(context));
+        return;
+      }
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        setState(() => _contactsError = 'Permesso posizione negato'.tr(context));
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      _latCtrl.text = pos.latitude.toStringAsFixed(4);
+      _lonCtrl.text = pos.longitude.toStringAsFixed(4);
+      setState(() {});
+      if (_selEclipse != null) await _calcContacts();
+    } catch (e) {
+      if (mounted) setState(() => _contactsError = 'GPS: $e');
+    } finally {
+      if (mounted) setState(() => _gpsBusy = false);
+    }
   }
 
   Widget _dropBox(BuildContext c, Widget child) => Container(
@@ -270,7 +328,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
           label: 'Calcola contatti dal bridge (C1–C4 + Sole)'.tr(c),
           icon: Icons.schedule,
           small: true,
-          onPressed: (_selPoint == null || _loadingContacts) ? null : _calcContacts,
+          onPressed: _loadingContacts ? null : _calcContacts,
         ),
         if (_loadingContacts)
           Padding(
@@ -327,6 +385,8 @@ class _EclipseScreenState extends State<EclipseScreen> {
         _selPoint = p;
         _selLat = p.lat;
         _selLon = p.lon;
+        _latCtrl.text = p.lat.toStringAsFixed(4);
+        _lonCtrl.text = p.lon.toStringAsFixed(4);
         if (p.duration > 0) _totalitySec.text = '${p.duration}';
         _contacts = null;
         _contactsError = null;
@@ -339,15 +399,28 @@ class _EclipseScreenState extends State<EclipseScreen> {
       setState(() => _contactsError = 'Bridge non connesso'.tr(context));
       return;
     }
-    if (_selEclipse == null || _selLat == null || _selLon == null) return;
+    final lat = double.tryParse(_latCtrl.text.trim().replaceAll(',', '.'));
+    final lon = double.tryParse(_lonCtrl.text.trim().replaceAll(',', '.'));
+    if (_selEclipse == null || lat == null || lon == null) {
+      setState(() => _contactsError = 'Seleziona eclissi e inserisci lat/lon'.tr(context));
+      return;
+    }
+    _selLat = lat;
+    _selLon = lon;
     setState(() {
       _loadingContacts = true;
       _contactsError = null;
     });
     try {
-      final r = await s.api!.eclipseContacts(
-          date: _selEclipse!.date, lat: _selLat!, lon: _selLon!);
-      if (mounted) setState(() => _contacts = r);
+      final r = await s.api!.eclipseContacts(date: _selEclipse!.date, lat: lat, lon: lon);
+      if (mounted) {
+        setState(() {
+          _contacts = r;
+          final ts = r['totality_sec'];
+          if (ts is num && ts > 0) _totalitySec.text = '${ts.round()}';
+          _plan = null;
+        });
+      }
     } on ApiException catch (e) {
       if (mounted) setState(() => _contactsError = e.body);
     } catch (e) {
