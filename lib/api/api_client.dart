@@ -520,6 +520,26 @@ class ApiClient {
   /// Punta subito la montatura sul Sole + tracking solare (azione esplicita).
   Future<Map<String, dynamic>> eclipsePointSun() => post('/api/eclipse/point_sun');
   Future<Map<String, dynamic>> eclipsePointMoon() => post('/api/eclipse/point_moon');
+  /// Sessione temporizzata (timer 1° contatto). blockOffsets = sec dal 1° contatto
+  /// per ogni blocco; simulate + simSpeed per provare senza eclissi vera.
+  Future<Map<String, dynamic>> eclipseSession({
+    required List<double> blockOffsets,
+    bool simulate = false,
+    double simSpeed = 60.0,
+    bool pointSun = false,
+    bool pointMoon = false,
+    bool cool = false,
+    double coolTemp = -10.0,
+  }) =>
+      post('/api/eclipse/session', {
+        'block_offsets': blockOffsets,
+        'simulate': simulate,
+        'sim_speed': simSpeed,
+        'point_sun': pointSun,
+        'point_moon': pointMoon,
+        'cool': cool,
+        'cool_temp': coolTemp,
+      }, const Duration(seconds: 40));
   Future<Map<String, dynamic>> eclipseStart() => post('/api/eclipse/start');
   Future<Map<String, dynamic>> eclipseStatus() => get('/api/eclipse/status');
   /// Override a un tap: {'ev': ±0.5, 'skip': true, 'freeze': true|false, 'abort': true}.

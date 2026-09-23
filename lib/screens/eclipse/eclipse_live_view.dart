@@ -7,6 +7,7 @@ import '../../state/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
 import '../../eclipse/eclipse_planner.dart';
+import '../../eclipse/eclipse_optimizer.dart';
 
 /// Sezione Eclissi — direttore LIVE (Fase 2, punto 4).
 ///
@@ -22,8 +23,11 @@ class EclipseLiveView extends StatefulWidget {
   final double? offset;
   /// true = eclissi di LUNA → l'autopuntamento punta la Luna (TRACK_LUNAR).
   final bool isLunar;
+  /// Contatti calcolati dal bridge (c1..c4 o p1..p4) — per la sessione a timer.
+  final Map<String, dynamic>? contacts;
   const EclipseLiveView(
-      {super.key, required this.plan, this.gain, this.offset, this.isLunar = false});
+      {super.key, required this.plan, this.gain, this.offset,
+      this.isLunar = false, this.contacts});
 
   @override
   State<EclipseLiveView> createState() => _EclipseLiveViewState();
@@ -37,6 +41,9 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
   bool _pointSun = false; // spunta: autopuntamento del Sole all'avvio
   bool _cool = false;      // spunta: raffreddamento camera all'arm
   double _coolTemp = -10.0; // target °C (default richiesto: -10°C)
+  bool _simulate = true;    // sessione: simulazione (default ON per i test)
+  double _simSpeed = 60;    // compressione tempo in simulazione (×)
+  bool _sessionBusy = false;
 
   @override
   void initState() {
@@ -112,6 +119,62 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
     }, 'Direttore avviato'.tr(context));
   }
 
+  /// Offset (secondi dal 1° contatto) di ogni blocco, dai contatti calcolati.
+  List<double> _computeOffsets() {
+    final blocks = widget.plan.totalityBlocks;
+    final c = widget.contacts;
+    double? sec(String? k) {
+      final s = c?[k] as String?;
+      if (s == null) return null;
+      final m = RegExp(r'(\d{1,2}):(\d{2}):(\d{2})').firstMatch(s);
+      if (m == null) return null;
+      return int.parse(m[1]!) * 3600 + int.parse(m[2]!) * 60 + int.parse(m[3]!) + 0.0;
+    }
+    double diff(double? t, double? a) {
+      if (t == null || a == null) return 0;
+      var d = t - a;
+      if (d < -43200) d += 86400;
+      return d < 0 ? 0 : d;
+    }
+    final anchor = widget.isLunar ? (sec('u1') ?? sec('p1')) : sec('c1');
+    double offForKey(String k) {
+      if (widget.isLunar) {
+        if (k.contains('penumbral')) return diff(sec('p1') ?? anchor, anchor);
+        if (k.contains('partial')) return diff(sec('u1'), anchor);
+        if (k.contains('total')) return diff(sec('u2'), anchor);
+        return 0;
+      }
+      if (k == 'partial') return diff(sec('c1'), anchor);
+      return diff(sec('c2'), anchor); // totalità (Sole)
+    }
+    final offs = <double>[];
+    var fb = 0.0;
+    for (final b in blocks) {
+      offs.add(anchor == null ? fb : offForKey(b.feature.key));
+      fb += 60;
+    }
+    return offs;
+  }
+
+  Future<void> _startSession() async {
+    if (_s.api == null) return;
+    setState(() => _sessionBusy = true);
+    await _do(() async {
+      await _s.api!.eclipseSession(
+        blockOffsets: _computeOffsets(),
+        simulate: _simulate,
+        simSpeed: _simSpeed,
+        pointSun: !widget.isLunar && _pointSun,
+        pointMoon: widget.isLunar && _pointSun,
+        cool: _cool,
+        coolTemp: _coolTemp,
+      );
+    }, _simulate
+        ? 'Sessione SIMULATA avviata'.tr(context)
+        : 'Sessione avviata: attendo il 1° contatto'.tr(context));
+    if (mounted) setState(() => _sessionBusy = false);
+  }
+
   String get _phase => (_status['phase'] as String?) ?? 'idle';
 
   @override
@@ -130,6 +193,7 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
           _progressCards(context),
           const SizedBox(height: 16),
           if (!running) _armSection(context),
+          if (!running) _sessionSection(context),
           if (running) _overrideSection(context),
           const SizedBox(height: 14),
           _logs(context),
@@ -405,6 +469,77 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
         onPressed: canStart ? _armAndStart : null,
       ),
     ]);
+  }
+
+  Widget _sessionSection(BuildContext c) {
+    final hasContacts = widget.contacts != null && widget.contacts!.isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: T.accent(c).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: T.accent(c).withValues(alpha: 0.30)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.timer, size: 18, color: T.accent(c)),
+          const SizedBox(width: 8),
+          Text('Sessione a timer (1° contatto)'.tr(c),
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w700, color: T.text(c))),
+        ]),
+        const SizedBox(height: 6),
+        Text(
+          'ATTIVA: il sistema attende il 1° contatto, lo conferma con uno scatto (misura la % di ingresso dell\'ombra) e poi spara ogni fase alla sua finestra.'
+              .tr(c),
+          style: TextStyle(fontSize: 11.5, color: T.muted(c)),
+        ),
+        if (!hasContacts)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              '⚠️ Nessun contatto calcolato nel pianificatore: in simulazione uso una spaziatura fissa tra le fasi.'
+                  .tr(c),
+              style: TextStyle(fontSize: 10.5, color: T.warn(c)),
+            ),
+          ),
+        InkWell(
+          onTap: () => setState(() => _simulate = !_simulate),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(children: [
+              Icon(_simulate ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: 20, color: _simulate ? T.accent(c) : T.muted(c)),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: Text('🧪 Simulazione (prova senza eclissi vera)'.tr(c),
+                      style: TextStyle(fontSize: 13, color: T.text(c)))),
+              if (_simulate)
+                Text('×${_simSpeed.toStringAsFixed(0)}',
+                    style: TextStyle(fontSize: 12, color: T.muted(c))),
+            ]),
+          ),
+        ),
+        if (_simulate)
+          Slider(
+            value: _simSpeed,
+            min: 10,
+            max: 300,
+            divisions: 29,
+            label: '×${_simSpeed.toStringAsFixed(0)}',
+            onChanged: (v) => setState(() => _simSpeed = v),
+          ),
+        const SizedBox(height: 4),
+        PrimaryButton(
+          label: _simulate ? 'ATTIVA (simulazione)'.tr(c) : 'ATTIVA sessione'.tr(c),
+          icon: Icons.timer,
+          color: T.accent(c),
+          onPressed: (_sessionBusy || _s.api == null) ? null : _startSession,
+        ),
+      ]),
+    );
   }
 
   Widget _overrideSection(BuildContext c) {

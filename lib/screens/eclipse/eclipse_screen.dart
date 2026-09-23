@@ -46,7 +46,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
   final _gain = TextEditingController(text: '100');
   final _iso = TextEditingController(text: '400');
   final _totalitySec = TextEditingController(text: '120');
-  final _shots = TextEditingController(text: '1');
+  final _shots = TextEditingController(text: '5'); // più frame/posa → stack migliori
   final _latCtrl = TextEditingController();
   final _lonCtrl = TextEditingController();
 
@@ -970,6 +970,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
                       plan: plan,
                       gain: _camType == 'cmos' ? _d(_gain, 100) : null,
                       isLunar: _isLunar,
+                      contacts: _contacts,
                     ),
                   ),
                 ),

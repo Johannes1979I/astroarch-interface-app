@@ -271,9 +271,10 @@ class EclipsePlanner {
     bool maximizeShots = false,
   }) {
     final blocks = <CaptureBlock>[];
-    // Le fasi lunari hanno tempo abbondante: se "massimizza", alza gli scatti.
+    // Le fasi lunari hanno tempo abbondante: se "massimizza", alza gli scatti
+    // (più frame/posa = stack più puliti).
     final shots = maximizeShots
-        ? (shotsPerExposure < 5 ? 5 : shotsPerExposure)
+        ? (shotsPerExposure < 10 ? 10 : shotsPerExposure)
         : shotsPerExposure;
     for (final f in kLunarFeatures) {
       if (!features.contains(f)) continue;
