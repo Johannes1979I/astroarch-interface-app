@@ -133,6 +133,7 @@ class EclipsePlan {
           for (final b in totalityBlocks)
             {
               'label': b.label,
+              'feature': b.feature.key,
               'exposures': b.exposures,
               'shots': b.shots,
               'priority': b.priority,

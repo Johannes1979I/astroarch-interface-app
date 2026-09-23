@@ -508,8 +508,11 @@ class ApiClient {
   Future<Map<String, dynamic>> eclipsePlan(Map<String, dynamic> plan) =>
       post('/api/eclipse/plan', plan);
   /// Arma la camera (UPLOAD BOTH, BLOB, gain/offset). Può richiedere qualche s.
-  Future<Map<String, dynamic>> eclipseArm({bool pointSun = false}) =>
-      post('/api/eclipse/arm', {'point_sun': pointSun}, const Duration(seconds: 40));
+  Future<Map<String, dynamic>> eclipseArm(
+          {bool pointSun = false, bool cool = false, double coolTemp = -10.0}) =>
+      post('/api/eclipse/arm',
+          {'point_sun': pointSun, 'cool': cool, 'cool_temp': coolTemp},
+          const Duration(seconds: 40));
   /// Punta subito la montatura sul Sole + tracking solare (azione esplicita).
   Future<Map<String, dynamic>> eclipsePointSun() => post('/api/eclipse/point_sun');
   Future<Map<String, dynamic>> eclipseStart() => post('/api/eclipse/start');

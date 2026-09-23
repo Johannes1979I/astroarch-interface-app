@@ -32,6 +32,8 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
   bool _sending = false;
   String? _sendError;
   bool _pointSun = false; // spunta: autopuntamento del Sole all'avvio
+  bool _cool = false;      // spunta: raffreddamento camera all'arm
+  double _coolTemp = -10.0; // target °C (default richiesto: -10°C)
 
   @override
   void initState() {
@@ -98,7 +100,8 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
   Future<void> _armAndStart() async {
     if (_s.api == null) return;
     await _do(() async {
-      await _s.api!.eclipseArm(pointSun: _pointSun);
+      await _s.api!.eclipseArm(
+          pointSun: _pointSun, cool: _cool, coolTemp: _coolTemp);
       await _s.api!.eclipseStart();
     }, 'Direttore avviato'.tr(context));
   }
@@ -150,16 +153,21 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
       'idle': 'In attesa'.tr(c),
       'planned': 'Piano pronto'.tr(c),
       'armed': 'Armato'.tr(c),
+      'cooling': '❄️ Raffreddamento'.tr(c),
+      'calibrating': '🎯 Calibrazione'.tr(c),
       'running': 'IN CORSO'.tr(c),
       'done': 'Completato'.tr(c),
       'aborted': 'Interrotto'.tr(c),
     };
     final colors = {
       'running': T.ok(c),
+      'cooling': T.accent(c),
+      'calibrating': T.warn(c),
       'armed': T.warn(c),
       'aborted': T.err(c),
       'done': T.accent(c),
     };
+    const activePhases = {'running', 'cooling', 'calibrating'};
     final col = colors[_phase] ?? T.muted(c);
     final bias = (_status['ev_bias_stops'] as num?)?.toDouble() ?? 0.0;
     final autoOn = _status['auto_enabled'] == true;
@@ -171,7 +179,7 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
         border: Border.all(color: col.withValues(alpha: 0.5)),
       ),
       child: Row(children: [
-        if (_phase == 'running') const Padding(
+        if (activePhases.contains(_phase)) const Padding(
           padding: EdgeInsets.only(right: 10),
           child: LiveDot(),
         ),
@@ -332,6 +340,51 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
             '⚠️ La montatura si muoverà verso il Sole. Tienilo SPENTO per i test notturni (Luna).'
                 .tr(c),
             style: TextStyle(fontSize: 10.5, color: T.warn(c)),
+          ),
+        ),
+      // Spunta: raffreddamento camera (scelta utente, default target -10°C).
+      InkWell(
+        onTap: () => setState(() => _cool = !_cool),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(children: [
+            Icon(_cool ? Icons.check_box : Icons.check_box_outline_blank,
+                size: 20, color: _cool ? T.accent(c) : T.muted(c)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('❄️ Raffredda la camera'.tr(c),
+                  style: TextStyle(fontSize: 13, color: T.text(c))),
+            ),
+            if (_cool) ...[
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.remove, size: 18),
+                onPressed: () => setState(
+                    () => _coolTemp = (_coolTemp - 1).clamp(-40.0, 20.0)),
+              ),
+              Text('${_coolTemp.toStringAsFixed(0)} °C',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: T.text(c))),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.add, size: 18),
+                onPressed: () => setState(
+                    () => _coolTemp = (_coolTemp + 1).clamp(-40.0, 20.0)),
+              ),
+            ],
+          ]),
+        ),
+      ),
+      if (_cool)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            'La camera inizia a raffreddare quando armi. Arma in anticipo per darle il tempo di scendere in temperatura.'
+                .tr(c),
+            style: TextStyle(fontSize: 10.5, color: T.muted(c)),
           ),
         ),
       const SizedBox(height: 10),
