@@ -542,6 +542,10 @@ class ApiClient {
       }, const Duration(seconds: 40));
   Future<Map<String, dynamic>> eclipseStart() => post('/api/eclipse/start');
   Future<Map<String, dynamic>> eclipseStatus() => get('/api/eclipse/status');
+  /// Rileva camera + telescopio (auto-taratura): bit→bianco, pixel µm, focale,
+  /// apertura→f/, scala "/px, gain. Usato per precompilare il pianificatore.
+  Future<Map<String, dynamic>> eclipseRig() =>
+      get('/api/eclipse/rig', null, const Duration(seconds: 20));
   /// Override a un tap: {'ev': ±0.5, 'skip': true, 'freeze': true|false, 'abort': true}.
   Future<Map<String, dynamic>> eclipseOverride(Map<String, dynamic> ov) =>
       post('/api/eclipse/override', ov);

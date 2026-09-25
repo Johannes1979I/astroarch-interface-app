@@ -70,6 +70,9 @@ class _EclipseScreenState extends State<EclipseScreen> {
   bool _loadingContacts = false;
   bool _gpsBusy = false;
   String? _contactsError;
+  // --- Auto-taratura (rilevamento camera+telescopio dal bridge) ---
+  bool _rigBusy = false;
+  String? _rigMsg;
 
   @override
   void initState() {
@@ -80,6 +83,11 @@ class _EclipseScreenState extends State<EclipseScreen> {
     loadLunarEclipseDb().then((list) {
       if (mounted) setState(() => _lunarEclipses = list);
     }).catchError((_) {});
+    // Auto-taratura: se il bridge è connesso, precompila l'equipaggiamento dai
+    // parametri reali della camera/telescopio (silenziosa se non connesso).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _detectRig(silent: true);
+    });
   }
 
   /// Cambia tipo eclissi (Sole/Luna): resetta selezione, contatti e imposta le
@@ -716,6 +724,73 @@ class _EclipseScreenState extends State<EclipseScreen> {
     }
   }
 
+  /// Auto-taratura: legge camera+telescopio dal bridge (INDI) e precompila
+  /// focale / f-ratio / pixel / gain. L'utente può sempre correggere a mano.
+  /// `silent`=true → non mostra errori (usato all'apertura della schermata).
+  Future<void> _detectRig({bool silent = false}) async {
+    final s = context.read<AppState>();
+    if (s.api == null) {
+      if (!silent && mounted) setState(() => _rigMsg = 'Bridge non connesso'.tr(context));
+      return;
+    }
+    setState(() {
+      _rigBusy = true;
+      if (!silent) _rigMsg = null;
+    });
+    try {
+      final r = await s.api!.eclipseRig();
+      final rig = (r['rig'] as Map?)?.cast<String, dynamic>() ?? {};
+      double? num_(String k) {
+        final v = rig[k];
+        return v is num ? v.toDouble() : null;
+      }
+      final fl = num_('focal_length_mm');
+      final fr = num_('f_ratio');
+      final px = num_('pixel_um');
+      final gn = num_('gain');
+      final got = <String>[];
+      if (fl != null && fl > 0) {
+        _focalLen.text = _fmt(fl);
+        got.add('focale ${_focalLen.text}mm');
+      }
+      if (fr != null && fr > 0) {
+        _fRatio.text = _fmt(fr);
+        got.add('f/${_fRatio.text}');
+      }
+      if (px != null && px > 0) {
+        _pixel.text = _fmt(px);
+        got.add('pixel ${_pixel.text}µm');
+      }
+      if (gn != null && gn > 0) {
+        _gain.text = gn.toStringAsFixed(0);
+        got.add('gain ${_gain.text}');
+      }
+      if (mounted) {
+        setState(() {
+          if (got.isNotEmpty) _plan = null; // i valori sono cambiati
+          _rigMsg = got.isEmpty
+              ? 'Nessun dato dal telescopio (compila a mano)'.tr(context)
+              : '🎛 ${'Rilevato'.tr(context)}: ${got.join(' · ')}';
+        });
+      }
+    } on ApiException catch (e) {
+      if (!silent && mounted) setState(() => _rigMsg = e.body);
+    } catch (e) {
+      if (!silent && mounted) setState(() => _rigMsg = '$e');
+    } finally {
+      if (mounted) setState(() => _rigBusy = false);
+    }
+  }
+
+  /// Formatta un numero senza zeri finali inutili (3.76 / 4.8 / 264).
+  String _fmt(double v) {
+    var s = v.toStringAsFixed(2);
+    if (s.contains('.')) {
+      s = s.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '');
+    }
+    return s;
+  }
+
   Widget _featurePresets(BuildContext c) {
     if (_isLunar) {
       return Wrap(spacing: 8, runSpacing: 8, children: [
@@ -798,6 +873,26 @@ class _EclipseScreenState extends State<EclipseScreen> {
           for (final p in ['ToupTek 2600', 'CMOS generica', 'Reflex (DSLR)'])
             ChipToggle(label: p, selected: _preset == p, onTap: () => _applyPreset(p)),
         ]),
+        const SizedBox(height: 8),
+        // Auto-taratura: precompila l'equipaggiamento dai dati reali del bridge.
+        Row(children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _rigBusy ? null : () => _detectRig(),
+              icon: _rigBusy
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.tune, size: 18),
+              label: Text('Rileva dal telescopio'.tr(c)),
+            ),
+          ),
+        ]),
+        if (_rigMsg != null) ...[
+          const SizedBox(height: 6),
+          Text(_rigMsg!,
+              style: TextStyle(fontSize: 12, color: Theme.of(c).hintColor)),
+        ],
         const SizedBox(height: 10),
         Row(children: [
           Expanded(child: _numField(c, 'Rapporto f/'.tr(c), _fRatio)),
