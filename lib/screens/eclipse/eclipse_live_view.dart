@@ -21,12 +21,14 @@ class EclipseLiveView extends StatefulWidget {
   final EclipsePlan plan;
   final double? gain;
   final double? offset;
+  /// Camera principale (imaging) rilevata dal setup — usata per gli scatti.
+  final String? device;
   /// true = eclissi di LUNA → l'autopuntamento punta la Luna (TRACK_LUNAR).
   final bool isLunar;
   /// Contatti calcolati dal bridge (c1..c4 o p1..p4) — per la sessione a timer.
   final Map<String, dynamic>? contacts;
   const EclipseLiveView(
-      {super.key, required this.plan, this.gain, this.offset,
+      {super.key, required this.plan, this.gain, this.offset, this.device,
       this.isLunar = false, this.contacts});
 
   @override
@@ -70,8 +72,9 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
       _sendError = null;
     });
     try {
-      // Usa SEMPRE la camera principale selezionata (non quella di guida).
-      final dev = _s.selectedCamera ?? _s.primaryCameraAuto;
+      // Usa SEMPRE la camera principale (imaging): quella rilevata dal setup
+      // per l'eclissi ha precedenza, poi la selezione/auto dell'AppState.
+      final dev = widget.device ?? _s.selectedCamera ?? _s.primaryCameraAuto;
       await _s.api!.eclipsePlan(widget.plan.bridgePayload(
           gain: widget.gain, offset: widget.offset, device: dev));
       await _refresh();

@@ -44,6 +44,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
   final _pixel = TextEditingController(text: '3.76');
   final _unityGain = TextEditingController(text: '100');
   final _gain = TextEditingController(text: '100');
+  final _offset = TextEditingController(text: '0');
   final _iso = TextEditingController(text: '400');
   final _totalitySec = TextEditingController(text: '120');
   final _shots = TextEditingController(text: '5'); // più frame/posa → stack migliori
@@ -73,6 +74,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
   // --- Auto-taratura (rilevamento camera+telescopio dal bridge) ---
   bool _rigBusy = false;
   String? _rigMsg;
+  String? _detectedCamera; // camera principale (imaging) rilevata dal setup
 
   @override
   void initState() {
@@ -116,7 +118,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
 
   @override
   void dispose() {
-    for (final c in [_fRatio, _focalLen, _pixel, _unityGain, _gain, _iso, _totalitySec, _shots, _latCtrl, _lonCtrl]) {
+    for (final c in [_fRatio, _focalLen, _pixel, _unityGain, _gain, _offset, _iso, _totalitySec, _shots, _latCtrl, _lonCtrl]) {
       c.dispose();
     }
     super.dispose();
@@ -748,6 +750,8 @@ class _EclipseScreenState extends State<EclipseScreen> {
       final fr = num_('f_ratio');
       final px = num_('pixel_um');
       final gn = num_('gain');
+      final off = num_('offset');
+      final device = (rig['device'] as String?)?.trim();
       final got = <String>[];
       if (fl != null && fl > 0) {
         _focalLen.text = _fmt(fl);
@@ -765,12 +769,26 @@ class _EclipseScreenState extends State<EclipseScreen> {
         _gain.text = gn.toStringAsFixed(0);
         got.add('gain ${_gain.text}');
       }
+      if (off != null) {
+        _offset.text = off.toStringAsFixed(0);
+        got.add('offset ${_offset.text}');
+      }
       if (mounted) {
         setState(() {
-          if (got.isNotEmpty) _plan = null; // i valori sono cambiati
-          _rigMsg = got.isEmpty
-              ? 'Nessun dato dal telescopio (compila a mano)'.tr(context)
-              : '🎛 ${'Rilevato'.tr(context)}: ${got.join(' · ')}';
+          // Camera principale (imaging) rilevata dal setup → l'app mostra e usa
+          // SOLO quella; gain/offset di Ekos diventano i default.
+          if (device != null && device.isNotEmpty) {
+            _detectedCamera = device;
+            _camType = 'cmos';
+          }
+          if (got.isNotEmpty || device != null) _plan = null;
+          final head = (device != null && device.isNotEmpty)
+              ? '📷 $device'
+              : '🎛 ${'Rilevato'.tr(context)}';
+          _rigMsg = (got.isEmpty && device == null)
+              ? 'Nessuna camera rilevata (collega il setup o compila a mano)'
+                  .tr(context)
+              : '$head${got.isEmpty ? '' : ' · ${got.join(' · ')}'}';
         });
       }
     } on ApiException catch (e) {
@@ -869,10 +887,19 @@ class _EclipseScreenState extends State<EclipseScreen> {
   }
 
   Widget _cameraSection(BuildContext c) => Column(children: [
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final p in ['ToupTek 2600', 'CMOS generica', 'Reflex (DSLR)'])
-            ChipToggle(label: p, selected: _preset == p, onTap: () => _applyPreset(p)),
-        ]),
+        // Camera: se rilevata dal setup mostra SOLO quella; altrimenti i preset.
+        if (_detectedCamera != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ChipToggle(
+                label: '📷 ${_detectedCamera!}', selected: true, onTap: () {}),
+          )
+        else
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final p in ['ToupTek 2600', 'CMOS generica', 'Reflex (DSLR)'])
+              ChipToggle(
+                  label: p, selected: _preset == p, onTap: () => _applyPreset(p)),
+          ]),
         const SizedBox(height: 8),
         // Auto-taratura: precompila l'equipaggiamento dai dati reali del bridge.
         Row(children: [
@@ -912,9 +939,9 @@ class _EclipseScreenState extends State<EclipseScreen> {
         if (_camType == 'cmos') ...[
           const SizedBox(height: 8),
           Row(children: [
-            Expanded(child: _numField(c, 'Unity gain'.tr(c), _unityGain)),
+            Expanded(child: _numField(c, 'Offset', _offset)),
             const SizedBox(width: 10),
-            const Expanded(child: SizedBox()),
+            Expanded(child: _numField(c, 'Unity gain'.tr(c), _unityGain)),
           ]),
         ],
       ]);
@@ -1064,6 +1091,8 @@ class _EclipseScreenState extends State<EclipseScreen> {
                     builder: (_) => EclipseLiveView(
                       plan: plan,
                       gain: _camType == 'cmos' ? _d(_gain, 100) : null,
+                      offset: _camType == 'cmos' ? _d(_offset, 0) : null,
+                      device: _detectedCamera,
                       isLunar: _isLunar,
                       contacts: _contacts,
                     ),
