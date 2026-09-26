@@ -98,7 +98,7 @@ class _BackgroundRemoteCardState extends State<BackgroundRemoteCard> {
     if (!GamepadInput.supported) return const SizedBox.shrink();
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SectionLabel('In background'.tr(context)),
-      Text('Associato, il controller muove la montatura anche con questa schermata chiusa o con altre app aperte (schermo acceso). In background funzionano solo i tasti, non la levetta.'
+      Text('Associato, il controller muove la montatura anche con questa schermata chiusa o con altre app aperte (schermo acceso). Da Android 14 funzionano croce e levetta; sulle versioni precedenti solo i tasti.'
               .tr(context),
           style: TextStyle(color: T.muted(context), fontSize: 12)),
       const SizedBox(height: 10),

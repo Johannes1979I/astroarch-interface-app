@@ -9,6 +9,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 
 /**
@@ -40,7 +42,18 @@ object RemoteSession {
     // La schermata Telecomando, quando e' davvero in primo piano, gestisce lei
     // il controller (anche la levetta): il servizio allora si fa da parte.
     @Volatile var screenOpen = false
+        set(v) { field = v; notifyService() }
     @Volatile var activityResumed = false
+        set(v) { field = v; notifyService() }
+
+    /** Il servizio di accessibilita', quando e' attivo (stesso processo). */
+    @Volatile var service: RemoteAccessibilityService? = null
+
+    private val main = Handler(Looper.getMainLooper())
+
+    private fun notifyService() {
+        main.post { service?.updateCapture() }
+    }
 
     val associated: Boolean get() = slew != null
     val screenHandlesInput: Boolean get() = screenOpen && activityResumed
@@ -51,12 +64,14 @@ object RemoteSession {
         this.label = label
         slew = NativeSlew(baseUrl, token) { lastError = it }
         showNotification(context)
+        notifyService()
     }
 
     fun dissociate(context: Context) {
         slew?.shutdown()
         slew = null
         cancelNotification(context)
+        notifyService()
     }
 
     fun serviceEnabled(context: Context): Boolean {

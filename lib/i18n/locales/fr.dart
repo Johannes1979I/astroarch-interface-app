@@ -1115,8 +1115,8 @@ const Map<String, String> frStrings = {
   // Telecomando in background (servizio di accessibilita')
   'In background':
       'En arrière-plan',
-  'Associato, il controller muove la montatura anche con questa schermata chiusa o con altre app aperte (schermo acceso). In background funzionano solo i tasti, non la levetta.':
-      'Une fois associée, la manette déplace la monture même avec cet écran fermé ou d\'autres apps ouvertes (écran allumé). En arrière-plan seuls les boutons fonctionnent, pas le stick.',
+  'Associato, il controller muove la montatura anche con questa schermata chiusa o con altre app aperte (schermo acceso). Da Android 14 funzionano croce e levetta; sulle versioni precedenti solo i tasti.':
+      'Une fois associée, la manette déplace la monture même avec cet écran fermé ou d\'autres apps ouvertes (écran allumé). Depuis Android 14 la croix et le stick fonctionnent ; sur les versions antérieures seulement les boutons.',
   'Tasti in background':
       'Boutons en arrière-plan',
   'Croce · STOP = B':
