@@ -33,6 +33,23 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Telecomando in background: tasti del controller anche fuori
+             dall'app. Vedi RemoteAccessibilityService.kt. -->
+        <service
+            android:name=".RemoteAccessibilityService"
+            android:exported="true"
+            android:label="@string/remote_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/remote_accessibility" />
+        </service>
+        <receiver
+            android:name=".RemoteStopReceiver"
+            android:exported="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

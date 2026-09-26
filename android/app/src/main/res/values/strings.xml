@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="remote_service_label">Astroarch Telecomando</string>
+    <string name="remote_service_description">Permette al controller Bluetooth (Xbox e simili) di muovere la montatura anche quando Astroarch Interface non è in primo piano. Il servizio legge solo i tasti dei controller di gioco, e solo mentre il telecomando è associato; non legge il contenuto dello schermo né ciò che scrivi.</string>
+</resources>

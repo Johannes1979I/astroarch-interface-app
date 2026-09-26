@@ -1112,4 +1112,33 @@ const Map<String, String> enStrings = {
         'Pair it from the phone\'s Bluetooth settings: hold the controller\'s pair button until the logo flashes fast.',
     'TELECOMANDO (CONTROLLER)':
         'REMOTE (CONTROLLER)',
+    // Telecomando in background (servizio di accessibilita')
+    'In background':
+        'In background',
+    'Associato, il controller muove la montatura anche con questa schermata chiusa o con altre app aperte (schermo acceso). In background funzionano solo i tasti, non la levetta.':
+        'Once paired, the controller moves the mount even with this screen closed or other apps open (screen on). In background only the buttons work, not the stick.',
+    'Tasti in background':
+        'Background buttons',
+    'Croce · STOP = B':
+        'D-pad · STOP = B',
+    'Y/A/X/B · STOP = RB':
+        'Y/A/X/B · STOP = RB',
+    'Y = Nord, A = Sud, X = Ovest, B = Est':
+        'Y = North, A = South, X = West, B = East',
+    'Ultimo tasto visto dal servizio':
+        'Last button seen by the service',
+    'Serve attivare una volta il servizio "Astroarch Telecomando" fra i servizi di accessibilità di Android.':
+        'Enable the "Astroarch Telecomando" service once among Android\'s accessibility services.',
+    'APRI IMPOSTAZIONI ACCESSIBILITÀ':
+        'OPEN ACCESSIBILITY SETTINGS',
+    'Se la voce è grigia o bloccata: Info app → menu ⋮ → "Consenti impostazioni con limitazioni", poi riprova.':
+        'If the entry is greyed out or blocked: App info → ⋮ menu → "Allow restricted settings", then try again.',
+    'INFO APP':
+        'APP INFO',
+    'ASSOCIA':
+        'PAIR',
+    'Associato':
+        'Paired',
+    'DISSOCIA':
+        'UNPAIR',
   };

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../i18n/strings.dart';
+import '../mount/background_remote_card.dart';
 import '../mount/gamepad_input.dart';
 import '../mount/slew_controller.dart';
 import '../state/app_state.dart';
@@ -54,6 +55,9 @@ class _MountRemoteScreenState extends State<MountRemoteScreen> {
     );
     _sub = GamepadInput.states().listen(_onPad);
     GamepadInput.keepScreenOn(true);
+    // Mentre questa schermata e' in primo piano il controller lo gestisce lei
+    // (levetta compresa); il servizio in background si fa da parte.
+    RemoteService.screenOpen(true);
     _loadPrefs();
     _checkBridge();
   }
@@ -64,6 +68,7 @@ class _MountRemoteScreenState extends State<MountRemoteScreen> {
     _life?.dispose();
     _slew.dispose();
     GamepadInput.keepScreenOn(false);
+    RemoteService.screenOpen(false);
     super.dispose();
   }
 
@@ -82,11 +87,13 @@ class _MountRemoteScreenState extends State<MountRemoteScreen> {
       _invertNS = p.getBool(_kInvertNS) ?? false;
       _invertEW = p.getBool(_kInvertEW) ?? false;
     });
+    await RemoteService.options(invertNS: _invertNS, invertEW: _invertEW);
   }
 
   Future<void> _savePref(String key, bool v) async {
     final p = await SharedPreferences.getInstance();
     await p.setBool(key, v);
+    await RemoteService.options(invertNS: _invertNS, invertEW: _invertEW);
   }
 
   /// L'arresto automatico c'e' solo dal bridge 0.9.0: con uno piu' vecchio
@@ -220,6 +227,7 @@ class _MountRemoteScreenState extends State<MountRemoteScreen> {
               _savePref(_kInvertEW, v);
             },
           ),
+          BackgroundRemoteCard(invertNS: _invertNS, invertEW: _invertEW),
         ],
       ),
     );
