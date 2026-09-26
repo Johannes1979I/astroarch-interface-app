@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/api_client.dart';
 import '../i18n/strings.dart';
+import '../mount/slew_controller.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import 'mount_remote_screen.dart';
 import 'shell_screen.dart';
 
 class MountScreen extends StatefulWidget {
@@ -20,9 +22,25 @@ class _MountScreenState extends State<MountScreen> {
   String? _searchErr;
   String? _selectedRate;
   bool _slewing = false;
+  // Frecce a schermo: stesso movimento protetto del telecomando, cosi' un
+  // dito che scivola via o la rete che cade non lasciano la montatura in moto.
+  late final SlewController _slewCtl;
+
+  @override
+  void initState() {
+    super.initState();
+    final app = context.read<AppState>();
+    _slewCtl = SlewController(send: (dir, active, {bool beat = false}) async {
+      final api = app.api;
+      if (api == null) return;
+      await api.mountSlewGuarded(
+          dir: dir, active: active, ttlMs: SlewController.ttlMs, beat: beat);
+    });
+  }
 
   @override
   void dispose() {
+    _slewCtl.dispose();
     _searchCtl.dispose();
     super.dispose();
   }
@@ -70,19 +88,14 @@ class _MountScreenState extends State<MountScreen> {
     );
   }
 
-  Future<void> _slew(String dir) async {
-    final s = context.read<AppState>();
-    if (s.api == null) return;
+  void _slew(String dir) {
     setState(() => _slewing = true);
-    await s.api!.mountSlew(dir: dir, active: true);
+    _slewCtl.press(dir);
   }
 
-  Future<void> _slewStop() async {
-    final s = context.read<AppState>();
-    if (s.api == null) return;
-    setState(() => _slewing = false);
-    await s.api!.mountSlew(dir: 'N', active: false);
-    await s.api!.mountSlew(dir: 'E', active: false);
+  void _slewStop(String dir) {
+    _slewCtl.release(dir);
+    setState(() => _slewing = _slewCtl.moving);
   }
 
   @override
@@ -138,6 +151,13 @@ class _MountScreenState extends State<MountScreen> {
                 Center(child: _joypad()),
                 const SizedBox(height: 8),
                 if (rates != null) Center(child: _rateChips(rates)),
+                const SizedBox(height: 10),
+                GhostButton(
+                  label: 'TELECOMANDO (CONTROLLER)'.tr(context),
+                  icon: Icons.sports_esports,
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(
+                      builder: (_) => const MountRemoteScreen())),
+                ),
                 const SizedBox(height: 14),
                 Row(children: [
                   Expanded(child: GhostButton(
@@ -336,8 +356,8 @@ class _MountScreenState extends State<MountScreen> {
       top: top, bottom: bottom, left: left, right: right,
       child: GestureDetector(
         onTapDown: (_) => _slew(dir),
-        onTapCancel: _slewStop,
-        onTapUp: (_) => _slewStop(),
+        onTapCancel: () => _slewStop(dir),
+        onTapUp: (_) => _slewStop(dir),
         child: Container(
           width: 42, height: 42,
           decoration: BoxDecoration(
