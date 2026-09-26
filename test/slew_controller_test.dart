@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// Registra le chiamate al bridge; ogni invio dura [delay] e i primi
 /// [failures] falliscono, per simulare una rete lenta o che cade.
 class _FakeBridge {
-  _FakeBridge({this.delay = Duration.zero, this.failures = 0});
+  _FakeBridge({this.delay = Duration.zero});
   final Duration delay;
-  int failures;
+  int failures = 0;
   final calls = <String>[];
 
   Future<void> send(String dir, bool active, {bool beat = false}) async {
