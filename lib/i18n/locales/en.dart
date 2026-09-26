@@ -1085,4 +1085,31 @@ const Map<String, String> enStrings = {
         'Force anyway',
     'Ricontrolla':
         'Check again',
+    // Telecomando della montatura (controller Bluetooth)
+    'Telecomando':
+        'Remote control',
+    'Il controller funziona solo nell\'app Android.':
+        'The controller only works in the Android app.',
+    'Bridge {0}: manca l\'arresto automatico (serve la 0.9.0). Se la connessione cade durante un movimento, la montatura non si ferma da sola.':
+        'Bridge {0}: automatic stop is missing (0.9.0 required). If the connection drops during a move, the mount will not stop by itself.',
+    'Velocità (da Ekos)':
+        'Speed (from Ekos)',
+    'Tasti':
+        'Buttons',
+    'Croce o levetta sinistra: muove la montatura, rilasciando si ferma':
+        'D-pad or left stick: moves the mount, release to stop',
+    'STOP: ferma subito ogni movimento, anche un GoTo':
+        'STOP: halts any motion at once, GoTo included',
+    'Direzioni':
+        'Directions',
+    'Inverti Nord/Sud':
+        'Reverse North/South',
+    'Inverti Est/Ovest':
+        'Reverse East/West',
+    'Nessun controller':
+        'No controller',
+    'Abbinalo dalle impostazioni Bluetooth del telefono: tieni premuto il tasto di abbinamento del controller finché il logo lampeggia veloce.':
+        'Pair it from the phone\'s Bluetooth settings: hold the controller\'s pair button until the logo flashes fast.',
+    'TELECOMANDO (CONTROLLER)':
+        'REMOTE (CONTROLLER)',
   };

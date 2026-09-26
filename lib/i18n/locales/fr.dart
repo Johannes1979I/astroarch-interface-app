@@ -1085,4 +1085,31 @@ const Map<String, String> frStrings = {
       'Forcer quand même',
   'Ricontrolla':
       'Revérifier',
+  // Telecomando della montatura (controller Bluetooth)
+  'Telecomando':
+      'Télécommande',
+  'Il controller funziona solo nell\'app Android.':
+      'La manette ne fonctionne que dans l\'app Android.',
+  'Bridge {0}: manca l\'arresto automatico (serve la 0.9.0). Se la connessione cade durante un movimento, la montatura non si ferma da sola.':
+      'Bridge {0} : l\'arrêt automatique manque (0.9.0 requise). Si la connexion tombe pendant un mouvement, la monture ne s\'arrête pas toute seule.',
+  'Velocità (da Ekos)':
+      'Vitesse (depuis Ekos)',
+  'Tasti':
+      'Boutons',
+  'Croce o levetta sinistra: muove la montatura, rilasciando si ferma':
+      'Croix ou stick gauche : déplace la monture, relâcher pour arrêter',
+  'STOP: ferma subito ogni movimento, anche un GoTo':
+      'STOP : arrête tout mouvement immédiatement, GoTo compris',
+  'Direzioni':
+      'Directions',
+  'Inverti Nord/Sud':
+      'Inverser Nord/Sud',
+  'Inverti Est/Ovest':
+      'Inverser Est/Ouest',
+  'Nessun controller':
+      'Aucune manette',
+  'Abbinalo dalle impostazioni Bluetooth del telefono: tieni premuto il tasto di abbinamento del controller finché il logo lampeggia veloce.':
+      'Appairez-la depuis les réglages Bluetooth du téléphone : maintenez le bouton d\'appairage de la manette jusqu\'à ce que le logo clignote vite.',
+  'TELECOMANDO (CONTROLLER)':
+      'TÉLÉCOMMANDE (MANETTE)',
 };

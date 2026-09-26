@@ -88,14 +88,22 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> post(String path, [Map<String, dynamic>? body, Duration? timeout]) async {
+  Future<Map<String, dynamic>> post(String path, [Map<String, dynamic>? body, Duration? timeout]) =>
+      _post(path, body, timeout, logOk: true);
+
+  /// [logOk] false: le risposte riuscite non finiscono nel log attivita'.
+  /// Serve alle chiamate ripetute di continuo (le conferme del movimento
+  /// manuale, 4 al secondo), che altrimenti spingerebbero fuori dal buffer
+  /// tutto il resto. Gli errori si registrano sempre.
+  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic>? body,
+      Duration? timeout, {required bool logOk}) async {
     final sw = Stopwatch()..start();
     try {
       final r = await _http
           .post(_u(path), headers: _authHeaders, body: jsonEncode(body ?? {}))
           .timeout(timeout ?? const Duration(seconds: 15));
       sw.stop();
-      ApiLog.add(ApiLogEntry(
+      if (logOk || r.statusCode >= 300) ApiLog.add(ApiLogEntry(
         ts: DateTime.now(), method: 'POST', path: _logPath(path, null),
         status: r.statusCode, body: _shortBody(r.body), duration: sw.elapsed,
       ));
@@ -315,6 +323,16 @@ class ApiClient {
       post('/api/mount/track', {'on': on, if (mode != null) 'mode': mode, if (device != null) 'device': device});
   Future<void> mountSlew({required String dir, required bool active, String? device}) =>
       post('/api/mount/slew', {'direction': dir, 'active': active, if (device != null) 'device': device});
+  /// Movimento manuale protetto (bridge >= 0.9.0): finche' il tasto resta
+  /// premuto va ripetuto ([beat]) piu' spesso di [ttlMs], altrimenti il
+  /// bridge ferma l'asse da solo. Timeout corto: una richiesta appesa non
+  /// deve trattenere dietro di se' il comando di arresto.
+  Future<void> mountSlewGuarded({required String dir, required bool active,
+          required int ttlMs, bool beat = false, String? device}) =>
+      _post('/api/mount/slew', {
+        'direction': dir, 'active': active, 'ttl_ms': ttlMs,
+        if (device != null) 'device': device,
+      }, const Duration(seconds: 2), logOk: !beat);
   Future<void> mountSlewRate(String rate, {String? device}) =>
       post('/api/mount/slew_rate', {'rate': rate, if (device != null) 'device': device});
 
