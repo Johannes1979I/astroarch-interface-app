@@ -52,3 +52,70 @@ class GamepadInput {
     }
   }
 }
+
+/// Stato del telecomando associato (in background), letto da Android.
+@immutable
+class RemoteStatus {
+  final bool serviceEnabled;
+  final bool associated;
+  final String label;
+  final String? lastError;
+  final String? lastKey;
+
+  const RemoteStatus({
+    this.serviceEnabled = false, this.associated = false, this.label = '',
+    this.lastError, this.lastKey,
+  });
+
+  factory RemoteStatus.fromMap(Map<dynamic, dynamic> m) => RemoteStatus(
+        serviceEnabled: m['serviceEnabled'] == true,
+        associated: m['associated'] == true,
+        label: (m['label'] ?? '').toString(),
+        lastError: m['lastError']?.toString(),
+        lastKey: m['lastKey']?.toString(),
+      );
+}
+
+/// Telecomando in background: un servizio di accessibilita' Android
+/// (`RemoteAccessibilityService.kt`) riceve i tasti del controller anche con
+/// l'app chiusa o altre app aperte, e manda lui i comandi al bridge.
+/// In background arrivano solo i tasti, non la levetta.
+class RemoteService {
+  static const _methods = MethodChannel('astroarch/gamepad');
+
+  static Future<RemoteStatus> status() async {
+    if (!GamepadInput.supported) return const RemoteStatus();
+    final m = await _methods.invokeMethod<Map<dynamic, dynamic>>('remoteStatus');
+    return m == null ? const RemoteStatus() : RemoteStatus.fromMap(m);
+  }
+
+  static Future<void> associate({
+    required String baseUrl, required String token, required String label,
+    required String mode, required bool invertNS, required bool invertEW,
+  }) => _methods.invokeMethod('remoteAssociate', {
+        'baseUrl': baseUrl, 'token': token, 'label': label,
+        'mode': mode, 'invertNS': invertNS, 'invertEW': invertEW,
+      });
+
+  static Future<void> dissociate() => _methods.invokeMethod('remoteDissociate');
+
+  static Future<void> options({String? mode, bool? invertNS, bool? invertEW}) async {
+    if (!GamepadInput.supported) return;
+    await _methods.invokeMethod('remoteOptions', {
+      if (mode != null) 'mode': mode,
+      if (invertNS != null) 'invertNS': invertNS,
+      if (invertEW != null) 'invertEW': invertEW,
+    });
+  }
+
+  /// La schermata Telecomando e' aperta: finche' e' in primo piano gestisce
+  /// lei il controller (anche la levetta) e il servizio si fa da parte.
+  static Future<void> screenOpen(bool open) async {
+    if (!GamepadInput.supported) return;
+    await _methods.invokeMethod('remoteScreenOpen', open);
+  }
+
+  static Future<void> openAccessibilitySettings() =>
+      _methods.invokeMethod('openAccessibilitySettings');
+  static Future<void> openAppSettings() => _methods.invokeMethod('openAppSettings');
+}

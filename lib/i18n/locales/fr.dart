@@ -1112,4 +1112,33 @@ const Map<String, String> frStrings = {
       'Appairez-la depuis les réglages Bluetooth du téléphone : maintenez le bouton d\'appairage de la manette jusqu\'à ce que le logo clignote vite.',
   'TELECOMANDO (CONTROLLER)':
       'TÉLÉCOMMANDE (MANETTE)',
+  // Telecomando in background (servizio di accessibilita')
+  'In background':
+      'En arrière-plan',
+  'Associato, il controller muove la montatura anche con questa schermata chiusa o con altre app aperte (schermo acceso). In background funzionano solo i tasti, non la levetta.':
+      'Une fois associée, la manette déplace la monture même avec cet écran fermé ou d\'autres apps ouvertes (écran allumé). En arrière-plan seuls les boutons fonctionnent, pas le stick.',
+  'Tasti in background':
+      'Boutons en arrière-plan',
+  'Croce · STOP = B':
+      'Croix · STOP = B',
+  'Y/A/X/B · STOP = RB':
+      'Y/A/X/B · STOP = RB',
+  'Y = Nord, A = Sud, X = Ovest, B = Est':
+      'Y = Nord, A = Sud, X = Ouest, B = Est',
+  'Ultimo tasto visto dal servizio':
+      'Dernier bouton vu par le service',
+  'Serve attivare una volta il servizio "Astroarch Telecomando" fra i servizi di accessibilità di Android.':
+      'Activez une fois le service "Astroarch Telecomando" parmi les services d\'accessibilité d\'Android.',
+  'APRI IMPOSTAZIONI ACCESSIBILITÀ':
+      'OUVRIR L\'ACCESSIBILITÉ',
+  'Se la voce è grigia o bloccata: Info app → menu ⋮ → "Consenti impostazioni con limitazioni", poi riprova.':
+      'Si l\'entrée est grisée ou bloquée : Infos sur l\'appli → menu ⋮ → « Autoriser les paramètres restreints », puis réessayez.',
+  'INFO APP':
+      'INFOS APPLI',
+  'ASSOCIA':
+      'ASSOCIER',
+  'Associato':
+      'Associée',
+  'DISSOCIA':
+      'DISSOCIER',
 };

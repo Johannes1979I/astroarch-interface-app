@@ -1,5 +1,8 @@
 package com.zarletti.osservatorio.astroarch_interface
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.WindowManager
@@ -27,9 +30,55 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(null)
                 }
+                // --- Telecomando associato (in background) ---
+                "remoteStatus" -> result.success(remoteStatus())
+                "remoteAssociate" -> {
+                    RemoteSession.associate(applicationContext,
+                        call.argument<String>("baseUrl") ?: "",
+                        call.argument<String>("token") ?: "",
+                        call.argument<String>("label") ?: "")
+                    applyRemoteOptions(call.arguments as? Map<*, *>)
+                    result.success(remoteStatus())
+                }
+                "remoteDissociate" -> {
+                    RemoteSession.dissociate(applicationContext)
+                    result.success(remoteStatus())
+                }
+                "remoteOptions" -> {
+                    applyRemoteOptions(call.arguments as? Map<*, *>)
+                    result.success(null)
+                }
+                "remoteScreenOpen" -> {
+                    RemoteSession.screenOpen = call.arguments == true
+                    result.success(null)
+                }
+                "openAccessibilitySettings" -> {
+                    startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    result.success(null)
+                }
+                "openAppSettings" -> {
+                    startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", packageName, null)))
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun remoteStatus(): Map<String, Any?> = mapOf(
+        "serviceEnabled" to RemoteSession.serviceEnabled(this),
+        "associated" to RemoteSession.associated,
+        "label" to RemoteSession.label,
+        "lastError" to RemoteSession.lastError,
+        "lastKey" to RemoteSession.lastKey,
+    )
+
+    private fun applyRemoteOptions(args: Map<*, *>?) {
+        if (args == null) return
+        (args["mode"] as? String)?.let { RemoteSession.mode = it }
+        (args["invertNS"] as? Boolean)?.let { RemoteSession.invertNS = it }
+        (args["invertEW"] as? Boolean)?.let { RemoteSession.invertEW = it }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean =
@@ -38,7 +87,13 @@ class MainActivity : FlutterActivity() {
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean =
         (::gamepad.isInitialized && gamepad.onMotion(event)) || super.dispatchGenericMotionEvent(event)
 
+    override fun onResume() {
+        super.onResume()
+        RemoteSession.activityResumed = true
+    }
+
     override fun onPause() {
+        RemoteSession.activityResumed = false
         if (::gamepad.isInitialized) gamepad.releaseAll()
         super.onPause()
     }

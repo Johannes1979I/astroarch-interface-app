@@ -1,7 +1,7 @@
 name: astroarch_interface
 description: "Astroarch Interface - Remote observatory control. Zarletti-Osservatorio Jupiter."
 publish_to: 'none'
-version: 0.9.0+89
+version: 0.10.0+90
 
 environment:
   sdk: ^3.5.0
