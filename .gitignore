@@ -38,3 +38,10 @@ macos/
 *.swp
 *.swo
 *~
+
+# Keystore di firma: non deve MAI finire nel repo, che e' pubblico.
+# Vive nei segreti di GitHub e in una copia offline dell'autore.
+*.p12
+*.jks
+*.keystore
+key.properties

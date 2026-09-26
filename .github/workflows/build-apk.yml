@@ -5,10 +5,14 @@ name: Build APK
 #
 # ⚠️ FIRMA: android/app/build.gradle firma le release con la chiave di
 # DEBUG. Android genera quella chiave per macchina, quindi un APK costruito
-# qui ha una firma diversa da uno costruito in locale e NON si installa
-# sopra: va disinstallata prima la versione precedente. Per evitarlo servono
-# un keystore di release e i segreti corrispondenti; finche' non ci sono,
-# l'APK di questo workflow e' utilizzabile ma comporta quella disinstallazione.
+# qui era firmato con la chiave di DEBUG, che Gradle genera nuova su ogni
+# runner effimero: ogni build aveva una firma diversa e Android rifiutava di
+# installarla sopra la precedente. Da settembre 2026 il job firma con un
+# keystore di release stabile, tenuto nei segreti della repo, quindi gli
+# aggiornamenti si installano sopra normalmente.
+#
+# ⚠️ Il passaggio dalla firma di debug a questa ha richiesto UNA disinstallazione
+# finale. Da li' in poi, nessuna piu'.
 
 on:
   workflow_dispatch:
@@ -39,7 +43,30 @@ jobs:
       - run: flutter --version
       - run: flutter pub get
 
+      # Il keystore di release arriva da un segreto e vive solo per la durata
+      # del job, fuori dalla cartella del repo. Se il segreto manca (fork, o
+      # repo appena clonata) il passo non scrive niente e Gradle ricade sulla
+      # chiave di debug: la build riesce comunque, semplicemente non e'
+      # installabile sopra le release ufficiali.
+      - name: Restore the release keystore
+        id: keystore
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KS" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 assente: firmo con la chiave di debug"
+            exit 0
+          fi
+          printf '%s' "$KS" | base64 -d > "$RUNNER_TEMP/release.p12"
+          test -s "$RUNNER_TEMP/release.p12"
+          echo "path=$RUNNER_TEMP/release.p12" >> "$GITHUB_OUTPUT"
+
       - name: Build release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: flutter build apk --release
 
       - name: Rename with the app version
@@ -50,6 +77,10 @@ jobs:
           mv build/app/outputs/flutter-apk/app-release.apk "$NAME"
           echo "apk=$NAME" >> "$GITHUB_OUTPUT"
           ls -l "$NAME"
+
+      - name: Shred the keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.p12"
 
       - name: Fingerprint of the signing certificate
         run: |

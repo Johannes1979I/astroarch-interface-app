@@ -32,11 +32,40 @@ android {
         versionName = flutter.versionName
     }
 
+    // Firma di release con una chiave STABILE.
+    //
+    // Perche' esiste: firmando con la chiave di debug, Gradle ne genera una
+    // nuova su ogni macchina che non ne ha gia' una — e i runner di CI sono
+    // effimeri, quindi ogni build produceva una firma diversa. Android
+    // rifiuta di installare un APK sopra uno firmato diversamente, cosi'
+    // ogni aggiornamento costringeva a disinstallare, perdendo bridge
+    // salvate e token. Misurato: v0.3.0 SHA1 7D:8D:2A:80..., v0.4.0
+    // 8E:93:52:01..., entrambi costruiti dalla stessa CI.
+    //
+    // Il keystore non sta nel repo: la CI lo scrive da un segreto e passa
+    // il percorso in ANDROID_KEYSTORE_PATH. Se quella variabile non c'e'
+    // (build locale, `flutter run --release`) si ricade sulla chiave di
+    // debug come prima, cosi' nessuno resta bloccato senza i segreti.
+    signingConfigs {
+        create("release") {
+            val ksPath = System.getenv("ANDROID_KEYSTORE_PATH")
+            if (ksPath != null) {
+                storeFile = file(ksPath)
+                storeType = "PKCS12"
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (System.getenv("ANDROID_KEYSTORE_PATH") != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
