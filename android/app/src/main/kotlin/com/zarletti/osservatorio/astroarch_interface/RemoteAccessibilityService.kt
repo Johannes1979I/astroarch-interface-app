@@ -1,38 +1,95 @@
 package com.zarletti.osservatorio.astroarch_interface
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Intent
+import android.os.Build
 import android.view.InputDevice
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.accessibility.AccessibilityEvent
 
 /**
- * Riceve i tasti del controller anche quando l'app non e' in primo piano.
+ * Riceve il controller anche quando l'app non e' in primo piano.
  *
- * Android consegna i tasti solo all'app in primo piano; un servizio di
- * accessibilita' con `flagRequestFilterKeyEvents` li vede prima di lei, ed e'
- * l'unico modo ufficiale di riceverli in background. Il servizio:
+ * Android consegna l'input solo all'app in primo piano; un servizio di
+ * accessibilita' lo vede prima di lei, ed e' l'unico modo ufficiale di
+ * riceverlo in background. Il servizio:
  *  - non legge il contenuto dello schermo (canRetrieveWindowContent=false);
- *  - guarda solo i tasti che vengono da un controller di gioco;
- *  - li trattiene SOLO se il telecomando e' associato, altrimenti li lascia
- *    passare intatti;
+ *  - guarda solo l'input che viene da un controller di gioco;
+ *  - lo trattiene SOLO se il telecomando e' associato, altrimenti lo lascia
+ *    passare intatto;
  *  - con la schermata Telecomando in primo piano si fa da parte, perche' li'
- *    comanda la schermata (che usa anche la levetta).
+ *    comanda la schermata.
  *
- * La levetta non arriva mai qui: e' un asse analogico, e ai servizi di
- * accessibilita' arrivano solo i tasti.
+ * Due canali:
+ *  - TASTI (onKeyEvent, ogni versione di Android): A/B/X/Y, dorsali, e la
+ *    croce solo sui telefoni che la presentano come tasti;
+ *  - ASSI (onMotionEvent, Android 14+): la croce dei controller Xbox, che
+ *    Android presenta come asse "HAT", e la levetta sinistra. Vanno chiesti
+ *    esplicitamente con setMotionEventSources(SOURCE_JOYSTICK), e finche' sono
+ *    chiesti le altre app non li ricevono piu': per questo si chiedono solo
+ *    mentre il telecomando e' associato e la schermata non e' in primo piano.
  */
 class RemoteAccessibilityService : AccessibilityService() {
-    private val pressed = mutableSetOf<String>()
+    private val keyDirs = mutableSetOf<String>()
+    private val axisDirs = mutableSetOf<String>()
     // Dopo lo STOP le direzioni sono ignorate finche' non si rilascia tutto.
     private var stopLatched = false
+    private var capturingAxes = false
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
     override fun onInterrupt() {}
 
-    override fun onUnbind(intent: android.content.Intent?): Boolean {
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        RemoteSession.service = this
+        updateCapture()
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
         // Servizio disattivato dalle impostazioni: nessun movimento orfano.
+        RemoteSession.service = null
         RemoteSession.slew?.stopAll()
         return super.onUnbind(intent)
+    }
+
+    /** Chiamato da RemoteSession quando cambia associazione o primo piano. */
+    fun updateCapture() {
+        val want = RemoteSession.associated && !RemoteSession.screenHandlesInput
+        if (!want) forget()
+        setAxisCapture(want)
+    }
+
+    private fun setAxisCapture(on: Boolean) {
+        // Prima di Android 14 gli assi non arrivano ai servizi: restano i tasti.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+        if (on == capturingAxes) return
+        val info = serviceInfo ?: return
+        info.motionEventSources = if (on) InputDevice.SOURCE_JOYSTICK else 0
+        serviceInfo = info
+        capturingAxes = on
+    }
+
+    override fun onMotionEvent(event: MotionEvent) {
+        if (event.action != MotionEvent.ACTION_MOVE) return
+        val hatX = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+        val hatY = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+        val stickX = event.getAxisValue(MotionEvent.AXIS_X)
+        val stickY = event.getAxisValue(MotionEvent.AXIS_Y)
+        val dirs = mutableSetOf<String>()
+        if (hatY < -0.5f || stickY < -STICK) dirs.add("N")
+        if (hatY > 0.5f || stickY > STICK) dirs.add("S")
+        if (hatX < -0.5f || stickX < -STICK) dirs.add("W")
+        if (hatX > 0.5f || stickX > STICK) dirs.add("E")
+        if (dirs.isNotEmpty()) {
+            RemoteSession.lastKey = (if (hatX != 0f || hatY != 0f) "CROCE (asse) " else "LEVETTA ") +
+                dirs.joinToString("")
+        }
+        if (RemoteSession.slew == null || RemoteSession.screenHandlesInput) return
+        if (dirs == axisDirs) return
+        axisDirs.clear()
+        axisDirs.addAll(dirs)
+        apply()
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
@@ -45,8 +102,7 @@ class RemoteAccessibilityService : AccessibilityService() {
         if (slew == null || RemoteSession.screenHandlesInput) {
             // Non tocca a noi: dimentica i tasti tenuti, altrimenti al ritorno
             // una direzione rilasciata altrove resterebbe "premuta".
-            pressed.clear()
-            stopLatched = false
+            forget()
             return false
         }
 
@@ -60,22 +116,33 @@ class RemoteAccessibilityService : AccessibilityService() {
         if (isStop) {
             if (down) {
                 stopLatched = true
-                pressed.clear()
                 slew.abort()
             }
             return true
         }
-        if (down) pressed.add(dir!!) else pressed.remove(dir!!)
+        if (down) keyDirs.add(dir!!) else keyDirs.remove(dir!!)
+        apply()
+        return true
+    }
+
+    private fun apply() {
+        val slew = RemoteSession.slew ?: return
+        val pressed = keyDirs + axisDirs
         if (stopLatched) {
             if (pressed.isEmpty()) stopLatched = false
-            return true
+            return
         }
         var ns = axis(pressed, "N", "S")
         var we = axis(pressed, "W", "E")
         if (RemoteSession.invertNS && ns != null) ns = if (ns == "N") "S" else "N"
         if (RemoteSession.invertEW && we != null) we = if (we == "W") "E" else "W"
         slew.set(ns, we)
-        return true
+    }
+
+    private fun forget() {
+        keyDirs.clear()
+        axisDirs.clear()
+        stopLatched = false
     }
 
     private fun axis(p: Set<String>, a: String, b: String): String? = when {
@@ -91,6 +158,9 @@ class RemoteAccessibilityService : AccessibilityService() {
     }
 
     companion object {
+        /** Oltre meta' corsa la levetta conta come direzione: sotto, e' rumore. */
+        private const val STICK = 0.5f
+
         private val KEY_NAMES = mapOf(
             KeyEvent.KEYCODE_DPAD_UP to "UP",
             KeyEvent.KEYCODE_DPAD_DOWN to "DOWN",
