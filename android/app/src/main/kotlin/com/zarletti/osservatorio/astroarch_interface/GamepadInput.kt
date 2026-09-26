@@ -111,8 +111,8 @@ class GamepadInput(context: Context) : EventChannel.StreamHandler, InputManager.
     }
 
     private fun isGamepad(sources: Int): Boolean =
-        sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
-            sources and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+        (sources and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
+            (sources and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
 
     companion object {
         /** Oltre meta' corsa la levetta conta come direzione: sotto, e' rumore. */
