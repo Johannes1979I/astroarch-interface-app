@@ -5,6 +5,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 /// Analyze: timeline sessione con metriche aggregate dei frame ricevuti
 /// e dei dati PHD2 storici.
@@ -17,13 +18,15 @@ class AnalyzeScreen extends StatelessWidget {
     final phd2 = s.phd2History;
     return Scaffold(
       appBar: AppBar(title: Text('Analyze'.tr(context))),
-      body: ListView(
+      body: AdaptiveListView(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
         children: [
           SectionLabel('Sessione corrente'.tr(context)),
-          GridView.count(
-            crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 6, crossAxisSpacing: 6, childAspectRatio: 1.4,
+          // Altezza secondo il contenuto (non piu' 3 colonne fisse a ratio 1.4).
+          AdaptiveGrid(
+            minTileWidth: 110,
+            maxColumns: 6,
+            spacing: 6,
             children: [
               StatusCard(header: 'EVENTS WS'.tr(context), value: '${s.wsEventsReceived}'),
               StatusCard(header: 'PROPS'.tr(context), value: '${s.properties.length}'),

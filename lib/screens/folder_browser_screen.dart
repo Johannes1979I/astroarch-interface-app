@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/responsive.dart';
 
 /// Navigatore di cartelle sul Pi (v0.2.48, richiesto da Tucniak).
 /// Usa /api/files/browse + /api/files/roots. Confinato nella home utente
@@ -117,7 +118,7 @@ class _FolderBrowserScreenState extends State<FolderBrowserScreen> {
               ? Center(child: Padding(padding: const EdgeInsets.all(24),
                   child: Text(_err!, textAlign: TextAlign.center,
                       style: TextStyle(color: T.muted(context)))))
-              : ListView(children: [
+              : AdaptiveListView(kind: ContentKind.form, children: [
                   if (canUp)
                     ListTile(
                       leading: Icon(Icons.arrow_upward, color: T.muted(context)),

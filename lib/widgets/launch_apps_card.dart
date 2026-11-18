@@ -158,10 +158,17 @@ class _LaunchAppsCardState extends State<LaunchAppsCard> {
               style: TextStyle(color: T.muted(context),
                   fontSize: 10, letterSpacing: 1.4,
                   fontWeight: FontWeight.w700)),
-          const Spacer(),
-          Text('sul desktop del RPi'.tr(context),
-              style: TextStyle(color: T.muted(context),
-                  fontSize: 10, fontStyle: FontStyle.italic)),
+          const SizedBox(width: 8),
+          // Expanded + ellipsis: su un telefono stretto la nota si accorcia
+          // invece di far uscire la riga (a 360 px sforava di 80 pixel).
+          Expanded(
+            child: Text('sul desktop del RPi'.tr(context),
+                textAlign: TextAlign.end,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: T.muted(context),
+                    fontSize: 10, fontStyle: FontStyle.italic)),
+          ),
         ]),
         const SizedBox(height: 8),
         Row(children: [

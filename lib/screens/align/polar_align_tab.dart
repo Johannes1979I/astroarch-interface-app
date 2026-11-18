@@ -6,6 +6,7 @@ import '../../i18n/strings.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/responsive.dart';
 
 /// Tab Polar Align: routine drift-based 3-step.
 class PolarAlignTab extends StatefulWidget {
@@ -118,7 +119,7 @@ class _PolarAlignTabState extends State<PolarAlignTab> {
   @override
   Widget build(BuildContext context) {
     final s = context.watch<AppState>();
-    return ListView(
+    return AdaptiveListView(
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
       children: [
         Container(

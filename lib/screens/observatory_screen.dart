@@ -5,6 +5,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 class ObservatoryScreen extends StatefulWidget {
   const ObservatoryScreen({super.key});
@@ -61,7 +62,7 @@ class _ObservatoryScreenState extends State<ObservatoryScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _refresh,
-              child: ListView(
+              child: AdaptiveListView(
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
                 children: [
                   if (!hasAnyConnected) _emptyHint(s, candidates),

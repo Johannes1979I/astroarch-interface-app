@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../api/api_client.dart';
 import '../i18n/strings.dart';
 import '../theme/app_theme.dart';
+import '../widgets/responsive.dart';
 
 /// Activity log: mostra le ultime chiamate API con timestamp, status, errori.
 /// Aggiornamento automatico ogni volta che ApiLog cambia.
@@ -40,7 +41,8 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
       body: entries.isEmpty
           ? Center(child: Text('Nessuna chiamata API ancora.\nInteragisci con l\'app per vedere l\'attività.'.tr(context),
               textAlign: TextAlign.center, style: TextStyle(color: T.muted(context))))
-          : ListView.separated(
+          : AdaptiveListView.separated(
+              kind: ContentKind.wide,
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 80),
               itemCount: entries.length,
               separatorBuilder: (_, __) => const SizedBox(height: 4),

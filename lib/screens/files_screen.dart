@@ -6,6 +6,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 import 'folder_browser_screen.dart';
 
 class FilesScreen extends StatefulWidget {
@@ -173,14 +174,15 @@ class _FilesScreenState extends State<FilesScreen> {
           : RefreshIndicator(
               onRefresh: _refresh,
               child: items.isEmpty
-                  ? ListView(children: [
+                  ? AdaptiveListView(kind: ContentKind.form, children: [
                       _diskInfoCard(),
                       Padding(padding: const EdgeInsets.all(40),
                           child: Text('${'Nessun FITS in '.tr(context)}${_data?['base'] ?? 'dir'}',
                               textAlign: TextAlign.center,
                               style: TextStyle(color: T.muted(context)))),
                     ])
-                  : ListView.separated(
+                  : AdaptiveListView.separated(
+                      kind: ContentKind.form,
                       padding: const EdgeInsets.fromLTRB(14, 4, 14, 80),
                       itemCount: items.length + 1,
                       separatorBuilder: (_, __) => Divider(height: 1, color: T.line(context)),

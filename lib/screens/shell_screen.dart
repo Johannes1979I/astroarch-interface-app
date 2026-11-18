@@ -59,10 +59,16 @@ class ShellLayout {
   /// Above this width the rail also shows its labels.
   static const double railExtended = 1400;
 
-  /// Maximum width of the single column on large screens: without this cap
-  /// a screen designed for a phone stretches across a whole iPad, with
-  /// controls as wide as the display.
-  static const double maxSingleColumn = 620;
+  /// Below this height the rail is not used even on a wide window: a phone in
+  /// landscape (~360 px tall) cannot fit five labelled destinations in a
+  /// column, and the bottom bar works better there.
+  static const double railMinHeight = 480;
+
+  // Fino alla 0.10.1 qui c'era `maxSingleColumn = 620`: la shell chiudeva ogni
+  // schermata in una colonna da 620 px, e su un monitor restava una striscia
+  // da telefono in mezzo al vuoto. Ora la larghezza la decide ogni schermata
+  // con i widget di lib/widgets/responsive.dart, che la fanno crescere con lo
+  // schermo e la centrano senza tagliare AppBar e sfondo.
 
   const ShellLayout._();
 }
@@ -117,7 +123,8 @@ class _ShellScreenState extends State<ShellScreen> {
 
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
-      final useRail = width >= ShellLayout.rail;
+      final useRail = width >= ShellLayout.rail &&
+          constraints.maxHeight >= ShellLayout.railMinHeight;
       final canSplit = width >= ShellLayout.twoPane;
       final splitting = canSplit && _twoPaneEnabled;
 
@@ -154,7 +161,7 @@ class _ShellScreenState extends State<ShellScreen> {
                             ),
                           ),
                         ])
-                      : _constrain(_primaryPane(s), useRail),
+                      : _primaryPane(s),
                 ),
               ]),
             ),
@@ -235,17 +242,6 @@ class _ShellScreenState extends State<ShellScreen> {
     );
   }
 
-  /// On large screens the single column keeps a readable width instead of
-  /// stretching: the screens are laid out for a phone.
-  Widget _constrain(Widget child, bool wide) {
-    if (!wide) return child;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: ShellLayout.maxSingleColumn),
-        child: child,
-      ),
-    );
-  }
 }
 
 /// Side rail: replaces the bottom bar from tablet size upwards.

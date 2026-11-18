@@ -7,6 +7,7 @@ import '../state/app_state.dart';
 import '../state/capture_job.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 /// Schermata di pianificazione e progresso "Osservazione completa":
 /// orchestratore Ekos-style con tutte le pre-flight checks.
@@ -110,7 +111,7 @@ class _ObservationScreenState extends State<ObservationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Osservazione completa'.tr(context))),
-      body: ListView(padding: const EdgeInsets.fromLTRB(14, 12, 14, 80), children: [
+      body: AdaptiveListView(padding: const EdgeInsets.fromLTRB(14, 12, 14, 80), children: [
         SectionLabel('Target'.tr(context)),
         Row(children: [
           Expanded(child: TextField(

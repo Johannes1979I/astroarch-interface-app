@@ -9,6 +9,7 @@ import '../mount/slew_controller.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 /// Telecomando della montatura con un controller Bluetooth (Xbox e simili)
 /// abbinato al telefono.
@@ -165,7 +166,7 @@ class _MountRemoteScreenState extends State<MountRemoteScreen> {
       appBar: AppBar(
         title: Text(m == null ? 'Telecomando'.tr(context) : '${'Telecomando'.tr(context)} · $m'),
       ),
-      body: ListView(
+      body: AdaptiveListView(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 40),
         children: [
           if (!GamepadInput.supported)

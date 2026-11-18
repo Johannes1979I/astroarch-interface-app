@@ -8,13 +8,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
+import 'package:astroarch_interface/screens/dashboard_screen.dart';
 import 'package:astroarch_interface/screens/shell_screen.dart';
 import 'package:astroarch_interface/state/app_state.dart';
 
 /// Mounts the shell at a given width.
-Future<void> pumpShellAt(WidgetTester tester, double width) async {
+Future<void> pumpShellAt(WidgetTester tester, double width,
+    {double height = 1000}) async {
   tester.view.devicePixelRatio = 1.0;
-  tester.view.physicalSize = Size(width, 1000);
+  tester.view.physicalSize = Size(width, height);
   addTearDown(tester.view.reset);
 
   await tester.pumpWidget(
@@ -55,21 +57,43 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
   });
 
-  testWidgets('between rail and twoPane: single column with a capped width',
+  testWidgets('between rail and twoPane: the screen fills the pane',
       (tester) async {
+    // Until 0.10.1 the shell capped every screen at 620 px, and on a monitor
+    // the dashboard was a phone-wide strip in the middle of nowhere. Now the
+    // pane is the screen's to fill: the content width is decided inside it
+    // by lib/widgets/responsive.dart.
     await pumpShellAt(tester, ShellLayout.twoPane - 100);
     expect(find.byType(NavigationRail), findsOneWidget);
-    // The width cap is there: without it the screen would stretch.
-    final constrained = tester.widgetList<ConstrainedBox>(
-      find.byType(ConstrainedBox),
-    );
-    expect(
-      constrained.any((c) =>
-          c.constraints.maxWidth == ShellLayout.maxSingleColumn),
-      isTrue,
-      reason: 'the single column must be capped at maxSingleColumn',
-    );
+    final railW = tester.getSize(find.byType(NavigationRail)).width;
+    final screenW = tester.getSize(find.byType(DashboardScreen)).width;
+    expect(screenW, closeTo(ShellLayout.twoPane - 100 - railW, 1.0),
+        reason: 'no cap: the screen spans the whole pane next to the rail');
   });
+
+  testWidgets('a phone in landscape keeps the bottom bar', (tester) async {
+    // 800 x 360: wide enough for the rail, too short for five labelled
+    // destinations in a column.
+    await pumpShellAt(tester, 800, height: 360);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final size in const [
+    Size(320, 568), Size(360, 640), Size(412, 915), // phones
+    Size(800, 360),                                 // phone, landscape
+    Size(768, 1024), Size(1024, 768),               // tablets
+    Size(1280, 800), Size(1920, 1080), Size(2560, 1440), // monitors
+  ]) {
+    testWidgets('no overflow at ${size.width.toInt()}x${size.height.toInt()}',
+        (tester) async {
+      await pumpShellAt(tester, size.width, height: size.height);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.takeException(), isNull,
+          reason: 'the dashboard must lay out without overflow');
+    });
+  }
 
   testWidgets('above twoPane: two panes side by side', (tester) async {
     await pumpShellAt(tester, ShellLayout.twoPane + 100);

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../i18n/strings.dart';
 import '../theme/app_theme.dart';
+import '../widgets/responsive.dart';
 
 /// Step-by-step diagnostics screen to identify where the bridge -> app
 /// connection chain breaks. Executed WITHOUT relying on the full
@@ -305,7 +306,8 @@ class _DiagnosticsScreenState extends State<DiagnosticsScreen> {
             ),
           ),
           Expanded(
-            child: ListView.separated(
+            child: AdaptiveListView.separated(
+              kind: ContentKind.form,
               padding: const EdgeInsets.all(14),
               itemCount: steps.length,
               separatorBuilder: (_, __) => const SizedBox(height: 6),

@@ -110,7 +110,11 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-            child: Column(
+            // Su monitor e tablet i campi non si tendono piu' su tutto lo
+            // schermo: 480 px e' la larghezza di un modulo di accesso.
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 32),
@@ -280,6 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
+            )
           ),
         ),
       ),

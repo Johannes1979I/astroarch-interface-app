@@ -7,6 +7,7 @@ import '../state/app_state.dart';
 import '../state/capture_job.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 import 'capture/cooler_panel.dart';
 import 'capture/job_form.dart';
 import 'capture/sequence_runner.dart';
@@ -156,7 +157,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       ),
       body: cams.isEmpty
           ? Center(child: Text('Nessuna camera connessa'.tr(context), style: TextStyle(color: T.muted(context))))
-          : ListView(
+          : AdaptiveListView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
               children: [
                 if (cams.length > 1) _devicePicker(s, cams),

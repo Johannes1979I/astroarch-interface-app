@@ -4,6 +4,7 @@ import '../../i18n/strings.dart';
 import '../../state/capture_job.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/responsive.dart';
 
 /// Form per creare o modificare un CaptureJob.
 class JobFormScreen extends StatefulWidget {
@@ -107,7 +108,8 @@ class _JobFormScreenState extends State<JobFormScreen> {
           ),
         ],
       ),
-      body: ListView(
+      body: AdaptiveListView(
+        kind: ContentKind.form,
         padding: const EdgeInsets.all(14),
         children: [
           SectionLabel('Filter'.tr(context)),

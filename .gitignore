@@ -38,3 +38,4 @@ macos/
 *.swp
 *.swo
 *~
+tool/screenshots/out/

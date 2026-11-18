@@ -10,6 +10,7 @@ import '../../i18n/strings.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/responsive.dart';
 
 /// Tab Plate Solve — clone Ekos Align user-friendly per mobile.
 /// Comandi via DBus, immagine live via WebSocket /ws/frames.
@@ -387,7 +388,7 @@ class _PlateSolveTabState extends State<PlateSolveTab> {
     final inProgress = st == 'progress' || st == 'syncing' || st == 'slewing';
     final lockUI = inProgress || mountSlewing;
 
-    return ListView(
+    return AdaptiveListView(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 80),
       children: [
         _imagePreviewCard(s, st, lockUI, mountSlewing),
@@ -487,7 +488,7 @@ class _PlateSolveTabState extends State<PlateSolveTab> {
         border: Border.all(color: statusColor.withValues(alpha: 0.5), width: 1.5),
       ),
       clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
+      child: AdaptivePreview(
         aspectRatio: 16 / 11,
         child: Stack(fit: StackFit.expand, children: [
           if (hasFrame)
@@ -1014,7 +1015,7 @@ class _PlateSolveTabState extends State<PlateSolveTab> {
                     fontFamily: 'monospace', fontSize: 10)),
         ]),
         const SizedBox(height: 6),
-        AspectRatio(aspectRatio: 1.6, child: CustomPaint(
+        AdaptivePreview(aspectRatio: 1.6, child: CustomPaint(
           painter: _TargetPlotPainter(
             dRa: dRa, dDec: dDec,
             history: _history.take(5).toList(),

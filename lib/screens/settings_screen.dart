@@ -8,6 +8,7 @@ import '../app_version.dart';
 import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/responsive.dart';
 import '../services/notifications.dart';
 import 'shutdown_screen.dart';
 
@@ -20,7 +21,8 @@ class SettingsScreen extends StatelessWidget {
     final s = context.watch<AppState>();
     return Scaffold(
       appBar: AppBar(title: Text('Impostazioni'.tr(context))),
-      body: ListView(
+      body: AdaptiveListView(
+        kind: ContentKind.form,
         padding: const EdgeInsets.all(12),
         children: [
           _sectionLabel(context, 'Lingua'.tr(context)),
@@ -328,8 +330,11 @@ class _PairingQrScreenState extends State<_PairingQrScreen> {
     final port = data['port']?.toString() ?? '—';
     final token = data['token']?.toString() ?? '—';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+    // Il padding si allarga su schermo largo: QR e dati restano in una
+    // colonna da modulo (720 px) invece di stirarsi su tutto il monitor.
+    return LayoutBuilder(builder: (_, c) => SingleChildScrollView(
+      padding: adaptivePadding(
+          c.maxWidth, const EdgeInsets.all(16), ContentKind.form),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text('Scansiona dall\'app sul nuovo dispositivo'.tr(context),
             textAlign: TextAlign.center,
@@ -396,7 +401,7 @@ class _PairingQrScreenState extends State<_PairingQrScreen> {
           style: TextStyle(color: T.muted(context), fontSize: 11),
         ),
       ]),
-    );
+    ));
   }
 
   Widget _kv(BuildContext c, String k, String v) => Padding(

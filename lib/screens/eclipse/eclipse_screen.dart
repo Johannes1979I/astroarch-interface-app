@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../i18n/strings.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/responsive.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../api/api_client.dart';
@@ -207,7 +208,7 @@ class _EclipseScreenState extends State<EclipseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Eclissi'.tr(context))),
-      body: ListView(
+      body: AdaptiveListView(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 40),
         children: [
           _kindSelector(context),
