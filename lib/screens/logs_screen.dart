@@ -4,6 +4,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 class LogsScreen extends StatelessWidget {
   const LogsScreen({super.key});
@@ -20,7 +21,8 @@ class LogsScreen extends StatelessWidget {
           ? Center(child: Text('Nessun messaggio'.tr(context), style: TextStyle(color: T.muted(context))))
           : Container(
               color: Colors.black,
-              child: ListView.builder(
+              child: AdaptiveListView.builder(
+                kind: ContentKind.wide,
                 padding: const EdgeInsets.all(10),
                 itemCount: messages.length,
                 itemBuilder: (c, i) {

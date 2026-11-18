@@ -6,6 +6,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 /// Schermata "Sessione" (v0.2.44): riepilogo della nottata in corso.
 /// - durata sessione (da connessione)
@@ -95,7 +96,7 @@ class _SessionScreenState extends State<SessionScreen> {
       body: s.api == null
           ? Center(child: Text('Non connesso'.tr(context),
               style: TextStyle(color: T.muted(context))))
-          : ListView(
+          : AdaptiveListView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
               children: [
                 // Durata
@@ -119,11 +120,10 @@ class _SessionScreenState extends State<SessionScreen> {
 
                 // Guiding aggregati
                 SectionLabel('Guida (RMS storico)'.tr(context)),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2, mainAxisSpacing: 8, crossAxisSpacing: 8,
-                  childAspectRatio: 1.9,
+                // Altezza secondo il contenuto (non piu' childAspectRatio 1.9).
+                AdaptiveGrid(
+                  minTileWidth: 150,
+                  maxColumns: 4,
                   children: [
                     StatusCard(header: 'RMS MEDIO'.tr(context),
                         value: rmsAvg == null ? '—' : '${rmsAvg.toStringAsFixed(2)}″',

@@ -7,6 +7,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 class FocusScreen extends StatefulWidget {
   const FocusScreen({super.key});
@@ -171,12 +172,15 @@ class _FocusScreenState extends State<FocusScreen> {
       appBar: AppBar(title: Text(f == null ? 'Focus'.tr(context) : '${'Focus'.tr(context)} · $f')),
       body: f == null
           ? Center(child: Text('Nessun focuser connesso'.tr(context), style: TextStyle(color: T.muted(context))))
-          : ListView(
+          : AdaptiveListView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
               children: [
-                GridView.count(
-                  shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 3, mainAxisSpacing: 6, crossAxisSpacing: 6, childAspectRatio: 1.7,
+                // Altezza secondo il contenuto (non piu' 3 colonne fisse a
+                // ratio 1.7): 2-3 colonne su telefono, fino a 6 su monitor.
+                AdaptiveGrid(
+                  minTileWidth: 110,
+                  maxColumns: 6,
+                  spacing: 6,
                   children: [
                     StatusCard(header: 'POSITION'.tr(context), value: position?.toString() ?? '—',
                         subtitle: maxPos == null ? null : '${'max'.tr(context)} ${maxPos.toInt()}'),
@@ -375,7 +379,8 @@ class _FocusScreenState extends State<FocusScreen> {
         border: Border.all(color: T.line(context)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
+      // Limitata in altezza su schermo largo.
+      child: AdaptivePreview(
         aspectRatio: 1.7,
         child: Stack(fit: StackFit.expand, children: [
           if (hasFrame)

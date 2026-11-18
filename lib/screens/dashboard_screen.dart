@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import '../widgets/ekos_master_toggle.dart';
 import '../widgets/launch_apps_card.dart';
+import '../widgets/responsive.dart';
 import 'connections_screen.dart';
 import 'live_view_screen.dart';
 import 'shell_screen.dart';
@@ -175,9 +176,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onRefresh: () async {
           await state.refreshSnapshot();
         },
-        child: ListView(
+        child: AdaptiveListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
           children: [
+            // Su schermo largo due colonne: a sinistra cosa si comanda e si
+            // guarda (programmi, sistema, obiettivo, ultimo scatto), a destra
+            // lo stato (card, sequenza, telemetria). Sotto la soglia, una sola
+            // colonna nello stesso ordine di sempre.
+            AdaptiveColumns(
+              left: [
             // v0.2.44: striscia health aggregato del sistema
             _systemHealth(context, state),
             const SizedBox(height: 10),
@@ -197,13 +204,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 12),
             _lastFrame(context, state),
             const SizedBox(height: 12),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1.7,
+              ],
+              right: [
+            // Altezza secondo il contenuto, non piu' childAspectRatio 1.7:
+            // 2 colonne su telefono, fino a 4 su tablet, 2+2 accanto al resto.
+            AdaptiveGrid(
+              minTileWidth: 150,
+              maxColumns: 4,
               children: [
                 _mountCard(context, state),
                 _cameraCard(context, state),
@@ -214,13 +221,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             SectionLabel('Sequenza in corso'.tr(context)),
             _sequenceProgress(context, state),
             SectionLabel('Telemetria osservatorio'.tr(context)),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1.6,
+            AdaptiveGrid(
+              minTileWidth: 150,
+              maxColumns: 2,
               children: [
                 _weatherCard(context, state),
                 _domeCard(context, state),
@@ -232,6 +235,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SectionLabel('Ultimi messaggi'.tr(context)),
               ...state.messages.reversed.take(3).map((m) => _msgRow(context, m)),
             ],
+              ],
+            ),
           ],
         ),
       ),
@@ -325,18 +330,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
             color: col, size: 18),
         const SizedBox(width: 8),
         Text(title, style: TextStyle(color: col, fontWeight: FontWeight.w700, fontSize: 13)),
-        const Spacer(),
-        // mini-indicatori per ciascun check
-        ...checks.map((e) => Padding(
-          padding: const EdgeInsets.only(left: 8),
-          child: Row(children: [
-            Container(width: 7, height: 7, decoration: BoxDecoration(
-                color: e.$2 ? T.ok(c) : (e.$3 ? T.warn(c) : T.err(c)),
-                shape: BoxShape.circle)),
-            const SizedBox(width: 3),
-            Text(e.$1, style: TextStyle(color: T.muted(c), fontSize: 10)),
-          ]),
-        )),
+        const SizedBox(width: 8),
+        // mini-indicatori per ciascun check. In un Wrap allineato a destra:
+        // su un telefono stretto vanno a capo invece di uscire dalla striscia
+        // (a 360 px sforavano di 107 pixel).
+        Expanded(
+          child: Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final e in checks)
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  Container(width: 7, height: 7, decoration: BoxDecoration(
+                      color: e.$2 ? T.ok(c) : (e.$3 ? T.warn(c) : T.err(c)),
+                      shape: BoxShape.circle)),
+                  const SizedBox(width: 3),
+                  Text(e.$1, style: TextStyle(color: T.muted(c), fontSize: 10)),
+                ]),
+            ],
+          ),
+        ),
       ]),
     );
   }
@@ -534,8 +548,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return InkWell(
       onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const LiveViewScreen())),
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        height: 200,
+      // 16:9 dentro la larghezza disponibile, al massimo il 45% dell'altezza
+      // dello schermo: su telefono resta ~180 px come prima, su monitor cresce
+      // invece di diventare una striscia ritagliata alta 200.
+      child: AdaptivePreview(
+        aspectRatio: 16 / 9,
+        maxHeightFraction: 0.45,
+        child: Container(
         decoration: BoxDecoration(
           color: Colors.black,
           borderRadius: BorderRadius.circular(12),
@@ -588,6 +607,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -732,7 +752,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Esposizione corrente'.tr(c), style: TextStyle(color: T.text(c), fontWeight: FontWeight.w600, fontSize: 13)),
+              // Expanded + ellipsis: a 320 px titolo e stato sforavano di 14 px.
+              Expanded(
+                child: Text('Esposizione corrente'.tr(c),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: T.text(c), fontWeight: FontWeight.w600, fontSize: 13)),
+              ),
+              const SizedBox(width: 8),
               Text(
                 exp?['state'] ?? '—',
                 style: TextStyle(color: exp?['state'] == 'Busy' ? T.accent(c) : T.muted(c), fontSize: 11),

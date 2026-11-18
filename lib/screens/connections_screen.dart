@@ -6,6 +6,7 @@ import '../state/app_state.dart';
 import '../state/bridge_connection.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 import 'qr_scan_screen.dart';
 
 /// Lista delle bridge salvate (multi-RPi).
@@ -49,7 +50,8 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                 Text('Tap "+" per aggiungere il primo Raspberry'.tr(context),
                     style: TextStyle(color: T.muted(context), fontSize: 12)),
               ])))
-          : ListView.separated(
+          : AdaptiveListView.separated(
+              kind: ContentKind.form,
               padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: s.bridges.length,
               separatorBuilder: (_, __) => const SizedBox(height: 4),

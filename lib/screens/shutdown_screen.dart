@@ -9,6 +9,7 @@ import '../api/api_client.dart';
 import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/responsive.dart';
 
 /// Spegnimento ordinato del Raspberry che ospita l'osservatorio.
 ///
@@ -248,7 +249,8 @@ class _ShutdownScreenState extends State<ShutdownScreen> {
       appBar: AppBar(
           title: Text('Spegni l\'osservatorio'.tr(context)),
           automaticallyImplyLeading: _phase != _Phase.working),
-      body: ListView(
+      body: AdaptiveListView(
+        kind: ContentKind.form,
         padding: const EdgeInsets.all(16),
         children: [
           _card(context, child: _body(context, s, name)),

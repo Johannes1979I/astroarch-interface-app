@@ -9,6 +9,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 import 'shell_screen.dart';
 import 'guide_ekos_view.dart';
 
@@ -101,7 +102,7 @@ class _GuideScreenState extends State<GuideScreen> {
                 ),
               ),
             )
-          : ListView(
+          : AdaptiveListView(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
               children: [
                 // Vista stella di guida — il riquadro con crosshair che si
@@ -112,11 +113,11 @@ class _GuideScreenState extends State<GuideScreen> {
                 // nella finestra principale di PHD2 sul desktop del RPi.
                 const _GuidePhd2FullFrameCard(),
                 const SizedBox(height: 10),
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2, mainAxisSpacing: 8, crossAxisSpacing: 8,
-                  childAspectRatio: 1.7,
+                // Altezza secondo il contenuto (non piu' childAspectRatio 1.7):
+                // 2 colonne su telefono, fino a 4 su schermo largo.
+                AdaptiveGrid(
+                  minTileWidth: 150,
+                  maxColumns: 4,
                   children: [
                     StatusCard(header: 'RMS TOTAL'.tr(context),
                         value: rms == null ? '—' : '${rms.toStringAsFixed(2)}″',
@@ -412,7 +413,9 @@ class _GuideStarImageCardState extends State<_GuideStarImageCard> {
         border: Border.all(color: T.line(context)),
       ),
       clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
+      // Limitata in altezza su schermo largo; il LayoutBuilder interno
+      // (crosshair) riceve comunque il riquadro reale.
+      child: AdaptivePreview(
         aspectRatio: 1.6,
         child: Stack(fit: StackFit.expand, children: [
           if (_png != null)
@@ -602,7 +605,7 @@ class _GuidePhd2FullFrameCardState extends State<_GuidePhd2FullFrameCard> {
         ),
         if (_enabled) Container(
           color: Colors.black,
-          child: AspectRatio(
+          child: AdaptivePreview(
             aspectRatio: (_w != null && _h != null && _w! > 0 && _h! > 0)
                 ? _w! / _h! : 1.5,
             child: Stack(fit: StackFit.expand, children: [

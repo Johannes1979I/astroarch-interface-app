@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'responsive.dart';
 
 /// Card standard con titolo, valore grande, sottotitolo e badge stato.
 class StatusCard extends StatelessWidget {
@@ -144,10 +145,17 @@ class FieldRow extends StatelessWidget {
               label.toUpperCase(),
               style: TextStyle(fontSize: 10.5, color: T.muted(context), letterSpacing: 1.1),
             ),
-            const Spacer(),
-            Text(value,
-                style: TextStyle(fontSize: 13, color: valueColor ?? T.text(context),
-                    fontWeight: FontWeight.w500)),
+            const SizedBox(width: 12),
+            // Expanded + ellipsis: su un telefono stretto, con il testo grande,
+            // un valore lungo (coordinate, nomi di filtri) usciva dalla riga.
+            Expanded(
+              child: Text(value,
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13, color: valueColor ?? T.text(context),
+                      fontWeight: FontWeight.w500)),
+            ),
             if (trailing != null) ...[const SizedBox(width: 6), trailing!],
           ],
         ),
@@ -274,31 +282,46 @@ class TargetCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+              Flexible(
+                child: Text(title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
+              ),
               const SizedBox(width: 8),
-              Text(subtitle, style: TextStyle(color: T.muted(context), fontSize: 12)),
+              Flexible(
+                child: Text(subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: T.muted(context), fontSize: 12)),
+              ),
             ],
           ),
           const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 2,
-            childAspectRatio: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 4,
-            crossAxisSpacing: 12,
+          // Prima: 2 colonne fisse con proporzione 4:1, che con il testo grande
+          // tagliava i valori. Ora 2 colonne su telefono, fino a 4 su schermo
+          // largo, e l'altezza la decide il testo.
+          AdaptiveGrid(
+            minTileWidth: 150,
+            maxColumns: 4,
+            spacing: 8,
+            equalHeight: false,
             children: [
               for (final r in rows)
                 Row(
                   children: [
                     Text('${r.key}  ', style: TextStyle(color: T.muted(context), fontSize: 11)),
-                    Text(r.value,
-                        style: TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 12,
-                          color: T.text(context),
-                          fontWeight: FontWeight.w500,
-                        )),
+                    Flexible(
+                      child: Text(r.value,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            color: T.text(context),
+                            fontWeight: FontWeight.w500,
+                          )),
+                    ),
                   ],
                 ),
             ],

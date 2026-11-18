@@ -6,6 +6,7 @@ import '../../i18n/strings.dart';
 import '../../state/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/responsive.dart';
 import '../../eclipse/eclipse_planner.dart';
 import '../../eclipse/eclipse_optimizer.dart';
 
@@ -185,7 +186,7 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
     final running = _phase == 'running';
     return Scaffold(
       appBar: AppBar(title: Text('Eclissi — Direttore live'.tr(context))),
-      body: ListView(
+      body: AdaptiveListView(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 40),
         children: [
           if (_sendError != null) _errBanner(context, _sendError!),
@@ -299,10 +300,10 @@ class _EclipseLiveViewState extends State<EclipseLiveView> {
             Text('CLIPPING', style: TextStyle(fontSize: 10, color: T.err(c), fontWeight: FontWeight.w700)),
         ]),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: AspectRatio(
-            aspectRatio: 3 / 2,
+        AdaptivePreview(
+          aspectRatio: 3 / 2,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
             child: jpeg != null
                 ? Image.memory(jpeg, fit: BoxFit.contain, gaplessPlayback: true)
                 : Container(

@@ -4,6 +4,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
@@ -62,7 +63,7 @@ class _SetupScreenState extends State<SetupScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _refresh,
-              child: ListView(padding: const EdgeInsets.fromLTRB(14, 12, 14, 80), children: [
+              child: AdaptiveListView(kind: ContentKind.form, padding: const EdgeInsets.fromLTRB(14, 12, 14, 80), children: [
                 SectionLabel('Profili Ekos disponibili'.tr(context)),
                 if (profiles.isEmpty)
                   Padding(

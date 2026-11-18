@@ -5,6 +5,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 /// Scheduler temporale multi-target. Lista jobs salvati lato bridge,
 /// con valutazione condizioni (twilight, altitudine, weather).
@@ -48,7 +49,7 @@ class _SchedulerScreenState extends State<SchedulerScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _refresh,
-              child: ListView(padding: const EdgeInsets.fromLTRB(14, 12, 14, 80), children: [
+              child: AdaptiveListView(padding: const EdgeInsets.fromLTRB(14, 12, 14, 80), children: [
                 _skyCard(),
                 SectionLabel('Jobs pianificati'.tr(context)),
                 if (_jobs.isEmpty)
@@ -249,7 +250,7 @@ class _AddJobScreenState extends State<_AddJobScreen> {
           ),
         ],
       ),
-      body: ListView(padding: const EdgeInsets.all(14), children: [
+      body: AdaptiveListView(kind: ContentKind.form, padding: const EdgeInsets.all(14), children: [
         TextField(controller: _name,
             decoration: InputDecoration(labelText: 'Nome job'.tr(context), isDense: true)),
         const SizedBox(height: 12),

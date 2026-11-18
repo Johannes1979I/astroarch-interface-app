@@ -5,6 +5,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 
 /// Clone della INDI Control Panel di Ekos.
 /// Lista device a sinistra, tap -> dettaglio device con tab per group, ogni
@@ -24,7 +25,8 @@ class IndiPanelScreen extends StatelessWidget {
               child: Text('Nessun driver INDI connesso.\nAvvia un profilo Ekos sul RPi.'.tr(context),
                   textAlign: TextAlign.center, style: TextStyle(color: T.muted(context))),
             ))
-          : ListView.separated(
+          : AdaptiveListView.separated(
+              kind: ContentKind.form,
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
               itemCount: devices.length,
               separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -174,7 +176,8 @@ class _IndiDeviceScreenState extends State<IndiDeviceScreen> {
               ),
             ),
           Expanded(
-            child: ListView.builder(
+            child: AdaptiveListView.builder(
+              kind: ContentKind.form,
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 80),
               itemCount: visible.length,
               itemBuilder: (c, i) => _IndiPropertyTile(device: widget.device, prop: visible[i]),

@@ -10,6 +10,7 @@ import '../i18n/strings.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
+import '../widgets/responsive.dart';
 import 'shell_screen.dart';
 
 /// v0.2.58: vista COMPLETA per il GUIDER INTERNO di Ekos (alternativa a PHD2).
@@ -134,7 +135,7 @@ class _EkosGuideViewState extends State<EkosGuideView> {
           ),
         ],
       ),
-      body: ListView(
+      body: AdaptiveListView(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 80),
         children: [
           // Banner "guida interna"
@@ -170,11 +171,11 @@ class _EkosGuideViewState extends State<EkosGuideView> {
           const SizedBox(height: 12),
 
           // DATI: RMS + deflessione istantanea
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2, mainAxisSpacing: 8, crossAxisSpacing: 8,
-            childAspectRatio: 1.7,
+          // Altezza secondo il contenuto: 2 colonne su telefono, 3+3 su
+          // schermo largo.
+          AdaptiveGrid(
+            minTileWidth: 150,
+            maxColumns: 4,
             children: [
               StatusCard(header: 'RMS TOTAL'.tr(context),
                   value: rms == null ? '—' : '${rms.toStringAsFixed(2)}″',
